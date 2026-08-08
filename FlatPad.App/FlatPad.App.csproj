@@ -13,7 +13,7 @@
          went out as FlatPadInstaller-v1.0.0.exe.exe: Explorer hides known extensions, so typing a
          name that ends in ".exe" over one it is already hiding gets you both. -->
     <AssemblyName>FlatPadInstaller</AssemblyName>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
 
     <AssemblyTitle>Flat Pad Installer</AssemblyTitle>
     <Product>Flat Pad Installer</Product>

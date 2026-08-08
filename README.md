@@ -86,8 +86,8 @@ run — the exe carries the .NET runtime and its native libraries inside itself,
 To cut a release, add the version to the filename **from a terminal**, and upload that:
 
 ```
-mv out/FlatPadInstaller.exe out/FlatPadInstaller-v1.0.0.exe
-sha256sum out/FlatPadInstaller-v1.0.0.exe
+mv out/FlatPadInstaller.exe out/FlatPadInstaller-v1.1.0.exe
+sha256sum out/FlatPadInstaller-v1.1.0.exe
 ```
 
 ⚠️ Not from Explorer. It hides known extensions, so typing a name ending in `.exe` over a file whose
