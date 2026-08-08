@@ -50,6 +50,10 @@ internal sealed class MainForm : Form
     private readonly Button _install = new() { Text = "Install Flat Pad", AutoSize = true };
     private readonly Button _uninstall = new() { Text = "Uninstall Flat Pad", AutoSize = true };
     private readonly Button _verify = new() { Text = "Verify", AutoSize = true };
+
+    // Deliberately absent from SetEnabled: this one works on a file the user points at, so it stays
+    // live with no game folder selected, packed or unpacked. BeginWork/EndWork are what gate it.
+    private readonly Button _unpackPackage = new() { Text = "Unpack a .kspkg…", AutoSize = true };
     private readonly Button _cancel = new() { Text = "Cancel", AutoSize = true, Enabled = false };
 
     private readonly ProgressBar _progress = new() { Dock = DockStyle.Fill, Height = 18, Visible = false };
@@ -97,6 +101,19 @@ internal sealed class MainForm : Form
         _uninstall.Click += async (_, _) => await RunAsync("Removing Flat Pad",
             log => new Installer(GameRoot, log).Uninstall());
         _verify.Click += async (_, _) => await VerifyAsync();
+        _unpackPackage.Click += async (_, _) => await UnpackPackageAsync();
+        _tips.SetToolTip(_unpackPackage,
+            "Extract any .kspkg — a car mod from Saved Games\\ACE\\mods, or the game's own archive — "
+            + "into a folder. Nothing else is touched. You can also drag one onto this window.");
+
+        // Dropping the file is how people already think about a mod package sitting in Explorer.
+        AllowDrop = true;
+        DragEnter += (_, e) => e.Effect = DroppedPackage(e) is null ? DragDropEffects.None : DragDropEffects.Copy;
+        DragDrop += async (_, e) =>
+        {
+            if (DroppedPackage(e) is string dropped)
+                await UnpackPackageAsync(dropped);
+        };
 
         string? found = GameLocator.Find();
         _gamePath.Text = found ?? "";
@@ -125,6 +142,19 @@ internal sealed class MainForm : Form
         var buttons = new FlowLayoutPanel { AutoSize = true, Dock = DockStyle.Top, Padding = new Padding(0, 4, 0, 4) };
         buttons.Controls.AddRange([_unpack, _revert, _install, _uninstall, _verify, _cancel]);
 
+        // On its own row, because it is the one action that does not touch the game. Sitting it
+        // among the buttons that do would imply it changed something about the install.
+        var packageRow = new FlowLayoutPanel
+        {
+            AutoSize = true, Dock = DockStyle.Top, Padding = new Padding(0, 0, 0, 4),
+        };
+        packageRow.Controls.Add(_unpackPackage);
+        packageRow.Controls.Add(new Label
+        {
+            Text = "extract a car mod, or any .kspkg — no game folder needed",
+            AutoSize = true, ForeColor = SystemColors.GrayText, Margin = new Padding(8, 9, 0, 0),
+        });
+
         var progressRow = new TableLayoutPanel
         {
             ColumnCount = 1, AutoSize = true, Dock = DockStyle.Top,
@@ -150,9 +180,9 @@ internal sealed class MainForm : Form
 
         var root = new TableLayoutPanel
         {
-            Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 8, Padding = new Padding(12),
+            Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 9, Padding = new Padding(12),
         };
-        for (int i = 0; i < 7; i++)
+        for (int i = 0; i < 8; i++)
             root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
@@ -162,8 +192,9 @@ internal sealed class MainForm : Form
         root.Controls.Add(_statusGrid, 0, 3);
         root.Controls.Add(_warning, 0, 4);
         root.Controls.Add(buttons, 0, 5);
-        root.Controls.Add(progressRow, 0, 6);
-        root.Controls.Add(_log, 0, 7);
+        root.Controls.Add(packageRow, 0, 6);
+        root.Controls.Add(progressRow, 0, 7);
+        root.Controls.Add(_log, 0, 8);
 
         var bottom = new FlowLayoutPanel { AutoSize = true, Dock = DockStyle.Bottom, Padding = new Padding(12, 0, 12, 8) };
         bottom.Controls.Add(_showLog);
@@ -465,6 +496,210 @@ internal sealed class MainForm : Form
         }
     }
 
+    // ------------------------------------------------------------------ standalone packages
+
+    /// <summary>
+    /// Unpack a <c>.kspkg</c> the user points at — a car mod, or any other package — into a folder.
+    /// </summary>
+    /// <remarks>
+    /// Nothing about the game changes: no archive is renamed, no registry is touched, and the
+    /// package is left where it is. That is why this is the one action that stays available with no
+    /// game folder selected. Someone taking a mod apart to see how it is built should not have to
+    /// own the game on this machine to do it.
+    ///
+    /// The table is read BEFORE the folder is asked for, so a file that turns out not to be a
+    /// package says so without first putting the user through a folder picker.
+    /// </remarks>
+    private async Task UnpackPackageAsync(string? package = null)
+    {
+        if (package is null)
+        {
+            using var open = new OpenFileDialog
+            {
+                Title = "Select a .kspkg package",
+                Filter = "Assetto Corsa EVO packages (*.kspkg)|*.kspkg|All files (*.*)|*.*",
+                InitialDirectory = ModsFolder(),
+                CheckFileExists = true,
+            };
+            if (open.ShowDialog(this) != DialogResult.OK)
+                return;
+            package = open.FileName;
+        }
+
+        PackageInfo? info = null;
+        BeginWork("Reading package", indeterminate: true);
+        try
+        {
+            info = await Task.Run(() => PackageUnpacker.Inspect(package));
+            Log($"{Path.GetFileName(package)}: {info.Files.Count:N0} files, "
+                + $"{GameArchive.Bytes(info.TotalBytes)} unpacked"
+                + (info.CommonRoot.Length > 0 ? $", all under {info.CommonRoot}\\" : ""));
+        }
+        catch (Exception e)
+        {
+            Failed("Reading the package", e);
+        }
+        finally
+        {
+            EndWork();
+        }
+
+        if (info is null)
+            return;
+
+        // No preselected path: writing hundreds of megabytes somewhere the user did not name is
+        // exactly the kind of surprise this tool exists to avoid.
+        using var pick = new FolderBrowserDialog
+        {
+            Description = "Where should the package contents go?",
+            UseDescriptionForTitle = true,
+        };
+        if (pick.ShowDialog(this) != DialogResult.OK)
+            return;
+
+        string destination = pick.SelectedPath;
+        if (!ConfirmPackageUnpack(info, destination))
+            return;
+
+        BeginWork("Unpacking", indeterminate: false);
+        var progress = new Progress<UnpackProgress>(p =>
+        {
+            _progress.Value = Math.Clamp((int)(p.Fraction * 100), 0, 100);
+            _progressText.Text = $"Unpacking… {p.FilesDone:N0} / {p.FilesTotal:N0} files";
+        });
+
+        UnpackedPackage? result = null;
+        try
+        {
+            CancellationToken token = _cancellation!.Token;
+            result = await Task.Run(() => PackageUnpacker.Unpack(info, destination, progress, token), token);
+        }
+        catch (OperationCanceledException)
+        {
+            _progressText.Text = "Cancelled. Every file written is complete.";
+            Log("Unpack cancelled — the package is untouched, and re-running starts over.");
+        }
+        catch (Exception e)
+        {
+            Failed("Unpack", e);
+        }
+        finally
+        {
+            EndWork();
+        }
+
+        if (result is null)
+            return;
+
+        Log($"Unpacked {result.Written:N0} files ({GameArchive.Bytes(result.BytesWritten)}) to {destination}");
+        _progressText.Text = $"Unpacked {result.Written:N0} files to {destination}";
+
+        if (!result.Ok)
+        {
+            // Never silent. An entry the package lists but that was not written is either a corrupt
+            // package or a hostile one, and both matter more than the files that did come out.
+            foreach (string refused in result.Refused.Take(20))
+                Log($"  refused: {refused}");
+            MessageBox.Show(this,
+                $"{result.Refused.Count:N0} of {info.Files.Count:N0} entries were refused, because the "
+                + "package names them in places outside the folder you chose, or lists files it cannot "
+                + "produce.\n\nEverything else was written. The log lists what was skipped.",
+                "Some entries were refused", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+
+        DialogResult open2 = MessageBox.Show(this,
+            $"Unpacked {result.Written:N0} files ({GameArchive.Bytes(result.BytesWritten)}) to\n\n"
+            + $"{destination}\n\nOpen the folder?",
+            "Unpacked", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+        if (open2 != DialogResult.Yes)
+            return;
+
+        try
+        {
+            Process.Start(new ProcessStartInfo { FileName = destination, UseShellExecute = true });
+        }
+        catch (Exception e)
+        {
+            Log($"could not open the folder: {e.Message}");
+        }
+    }
+
+    /// <summary>Show what unpacking this package costs, and where it lands, before it happens.</summary>
+    private bool ConfirmPackageUnpack(PackageInfo info, string destination)
+    {
+        var paragraphs = new List<string>
+        {
+            $"Unpack {Path.GetFileName(info.PackagePath)}?",
+            $"{info.Files.Count:N0} files, {GameArchive.Bytes(info.TotalBytes)}"
+            + (info.CommonRoot.Length > 0 ? $" — all under {info.CommonRoot}\\" : ""),
+            $"Into:  {destination}\n       {GameArchive.Bytes(FreeSpaceOf(destination))} free",
+        };
+
+        // Cheap check on purpose: counting overwrites exactly would mean 115,000 File.Exists calls
+        // on the UI thread when the package is the game's own archive.
+        if (Directory.Exists(destination) && Directory.EnumerateFileSystemEntries(destination).Any())
+            paragraphs.Add("That folder is not empty. Files with the same names will be overwritten.");
+
+        if (IsGameArchive(info.PackagePath))
+        {
+            paragraphs.Add("This is the game's own content archive, so this only makes a COPY of it. "
+                           + "It does NOT make the game read loose files — \"Unpack game\" is the "
+                           + "button for that.");
+        }
+
+        paragraphs.Add("The package itself is left exactly as it is, and nothing about the game changes.");
+
+        return MessageBox.Show(this, string.Join("\n\n", paragraphs), "Unpack a package",
+            MessageBoxButtons.OKCancel, MessageBoxIcon.Question) == DialogResult.OK;
+    }
+
+    /// <summary>Is this the selected install's own content archive, rather than a mod?</summary>
+    private bool IsGameArchive(string package)
+    {
+        if (string.Equals(Path.GetFileName(package), GameArchive.PackageName, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (!GameLocator.LooksLikeGame(GameRoot))
+            return false;
+
+        GameArchiveState state = GameArchive.Detect(GameRoot);
+        return Same(state.LivePackage, package) || state.DisabledPackages.Any(p => Same(p, package));
+
+        static bool Same(string? a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>The single <c>.kspkg</c> in a drag payload, or null when it is anything else.</summary>
+    private string? DroppedPackage(DragEventArgs e)
+    {
+        if (_cancellation is not null)
+            return null;    // busy: a second operation would fight the first for the progress bar
+        if (e.Data?.GetData(DataFormats.FileDrop) is not string[] paths || paths.Length != 1)
+            return null;
+
+        return paths[0].EndsWith(".kspkg", StringComparison.OrdinalIgnoreCase) && File.Exists(paths[0])
+            ? paths[0]
+            : null;
+    }
+
+    /// <summary>Where car mods live, so the file dialog opens somewhere useful.</summary>
+    private static string ModsFolder()
+    {
+        string mods = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "Saved Games", "ACE", "mods");
+        return Directory.Exists(mods) ? mods : "";
+    }
+
+    private static long FreeSpaceOf(string path)
+    {
+        try
+        {
+            return new DriveInfo(Path.GetPathRoot(Path.GetFullPath(path))!).AvailableFreeSpace;
+        }
+        catch (Exception e) when (e is ArgumentException or IOException or UnauthorizedAccessException)
+        {
+            return 0;
+        }
+    }
+
     private void BeginWork(string title, bool indeterminate)
     {
         _cancellation = new CancellationTokenSource();
@@ -473,6 +708,8 @@ internal sealed class MainForm : Form
         SetEnabled(false, false, false, false, false);
         _browse.Enabled = false;
         _gamePath.Enabled = false;
+        // Not part of SetEnabled — RefreshState leaves it alone so it survives an empty game box.
+        _unpackPackage.Enabled = false;
         _cancel.Enabled = !indeterminate;
         _progress.Visible = true;
         _progress.Style = indeterminate ? ProgressBarStyle.Marquee : ProgressBarStyle.Continuous;
@@ -488,6 +725,7 @@ internal sealed class MainForm : Form
         _progress.Visible = false;
         _browse.Enabled = true;
         _gamePath.Enabled = true;
+        _unpackPackage.Enabled = true;
         RefreshState();
     }
 

@@ -231,4 +231,156 @@ public class GameArchiveTests : IDisposable
         Touch("AssettoCorsaEVO.exe");
         Assert.True(GameLocator.LooksLikeGame(_root));
     }
+
+    // ------------------------------------------------------------------ the listing parse
+    //
+    // Reading the library's own listing back is the only way to enumerate the file table through
+    // its public API, so these lines are copied verbatim from a real 119,443-entry listing. The
+    // three flag renderings below are the only three that archive produces.
+
+    [Fact]
+    public void A_directory_pseudo_entry_is_recognised_by_its_flag_not_by_its_zero_size()
+    {
+        // Extracting one reports success and writes nothing, so counting it as a file inflates
+        // every total and, in check-unpack, crashes the byte compare that reads it back.
+        List<ArchiveEntry> entries = GameArchive.ParseListing(
+            ["cfg - offset:00000000, size:00000000 hash: 9685107974627194447 (IsDirectory)"]);
+
+        Assert.True(Assert.Single(entries).IsDirectory);
+    }
+
+    [Fact]
+    public void A_real_zero_byte_file_is_still_a_file_because_the_archive_holds_dozens_of_them()
+    {
+        // 36 of them in the June listing. The old "Size > 0" test dropped every one from the
+        // sample AND from the denominator, so check-unpack quietly under-reported its own scope.
+        List<ArchiveEntry> entries = GameArchive.ParseListing(
+            [@"content\cars\ks_mini_jcs_1990\data\tuning\minimkvi_bigbrake.tuningpart"
+             + " - offset:589492194, size:00000000 hash: 11728099583420404163 (Encrypted)"]);
+
+        ArchiveEntry entry = Assert.Single(entries);
+        Assert.False(entry.IsDirectory);
+        Assert.Equal(0, entry.Size);
+    }
+
+    [Theory]
+    [InlineData("(Encrypted)")]
+    [InlineData("(0)")]
+    public void Whether_a_file_is_encrypted_is_no_concern_of_ours_the_library_decrypts_it(string flags)
+    {
+        List<ArchiveEntry> entries = GameArchive.ParseListing(
+            [@"cfg\crazy1.lut - offset:111DA9CB0E, size:00000027 hash: 12402782211981809042 " + flags]);
+
+        ArchiveEntry entry = Assert.Single(entries);
+        Assert.False(entry.IsDirectory);
+        Assert.Equal(0x27, entry.Size);
+        Assert.Equal(0x111DA9CB0E, entry.Offset);
+    }
+
+    [Fact]
+    public void A_line_without_the_flags_column_degrades_to_a_file_rather_than_failing_to_parse()
+    {
+        // The submodule writes this line and the pack format HAS changed across game versions. If
+        // the tail ever moves, every entry should still parse — which is what it did before flags
+        // were read at all — instead of a format tweak making a 70 GB archive unreadable.
+        List<ArchiveEntry> entries = GameArchive.ParseListing(
+            [@"content\a.texture - offset:0000000A, size:0000000B"]);
+
+        ArchiveEntry entry = Assert.Single(entries);
+        Assert.False(entry.IsDirectory);
+        Assert.Equal(0xB, entry.Size);
+    }
+
+    [Fact]
+    public void A_path_containing_the_separator_the_parser_looks_for_is_not_cut_short()
+    {
+        // Real paths do contain " - ": content\tracks\barcelona\materials\17 - default.material.
+        List<ArchiveEntry> entries = GameArchive.ParseListing(
+            [@"content\tracks\barcelona\materials\17 - default.material"
+             + " - offset:789F4F5B9, size:0000039B hash: 1326968994957191550 (Encrypted)"]);
+
+        Assert.Equal(@"content\tracks\barcelona\materials\17 - default.material",
+            Assert.Single(entries).Path);
+    }
+
+    [Fact]
+    public void Entries_come_back_in_archive_order_so_reads_stay_sequential()
+    {
+        List<ArchiveEntry> entries = GameArchive.ParseListing([
+            @"content\c - offset:00000030, size:00000001 hash: 3 (0)",
+            @"content\a - offset:00000010, size:00000001 hash: 1 (0)",
+            @"content\b - offset:00000020, size:00000001 hash: 2 (0)",
+        ]);
+
+        Assert.Equal([0x10, 0x20, 0x30], entries.Select(e => e.Offset));
+    }
+
+    // ------------------------------------------------------------------ where an entry may land
+    //
+    // Entry names come out of the package unvalidated, and until now every package came from Steam.
+    // A mod package is downloaded from the internet, so these are the tests that stop a hostile one
+    // writing outside the folder the user chose.
+
+    [Fact]
+    public void An_entry_with_a_drive_letter_is_refused_because_Path_Combine_discards_the_destination()
+    {
+        // The sharp edge, and the one that needs no traversal sequence: Path.Combine throws the
+        // destination away entirely when the second argument is rooted.
+        Assert.Null(GameArchive.SafeOutputPath(_root, @"C:\Windows\System32\evil.dll"));
+    }
+
+    [Theory]
+    [InlineData(@"..\..\evil.dll")]
+    [InlineData(@"content\..\..\evil.dll")]
+    [InlineData(@"\evil.dll")]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void An_entry_that_climbs_out_of_the_destination_is_refused_rather_than_written(string entry)
+    {
+        Assert.Null(GameArchive.SafeOutputPath(_root, entry));
+    }
+
+    [Fact]
+    public void An_ordinary_entry_resolves_to_a_path_underneath_the_destination()
+    {
+        string? resolved = GameArchive.SafeOutputPath(_root, @"content\tracks\sebring\sebring.scene");
+
+        Assert.NotNull(resolved);
+        Assert.Equal(Path.Combine(_root, "content", "tracks", "sebring", "sebring.scene"), resolved);
+    }
+
+    [Fact]
+    public void An_entry_that_doubles_back_but_stays_inside_is_allowed()
+    {
+        string? resolved = GameArchive.SafeOutputPath(_root, @"content\cars\..\tracks\a.scene");
+
+        Assert.Equal(Path.Combine(_root, "content", "tracks", "a.scene"), resolved);
+    }
+
+    [Fact]
+    public void A_sibling_folder_whose_name_merely_starts_with_the_destinations_is_not_inside_it()
+    {
+        // Without a trailing separator on the comparison, "C:\out" happily contains "C:\output\x".
+        string sibling = _root + "-elsewhere";
+
+        Assert.Null(GameArchive.SafeOutputPath(_root, Path.Combine(sibling, "a.scene")));
+    }
+
+    [Fact]
+    public void The_destination_folder_itself_is_not_somewhere_an_entry_can_be_written()
+    {
+        Assert.Null(GameArchive.SafeOutputPath(_root, "."));
+    }
+
+    [Fact]
+    public void A_line_the_parser_cannot_read_is_skipped_rather_than_taking_the_archive_with_it()
+    {
+        List<ArchiveEntry> entries = GameArchive.ParseListing([
+            "",
+            "some banner the library might print one day",
+            @"content\a - offset:00000010, size:00000001 hash: 1 (0)",
+        ]);
+
+        Assert.Equal(@"content\a", Assert.Single(entries).Path);
+    }
 }
