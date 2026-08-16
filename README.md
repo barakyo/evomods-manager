@@ -47,6 +47,23 @@ stack duplicates. It deliberately does not restore a snapshot taken on a previou
 from before a game update would silently revert whatever that update added, which once cost a
 base-game track its entry outright.
 
+## Unpacking a single package
+
+Not one of the three steps above, and nothing to do with installing a map. **Unpack a .kspkg…**
+points at any package — a car mod from `Saved Games\ACE\mods\`, or the game's own archive — and
+writes its contents into a folder you choose. You can drag a `.kspkg` onto the window instead. It is
+the one action that needs no game folder at all: taking a mod apart to see how it is built should not
+require owning the game on that machine.
+
+Nothing about the install changes. No archive is renamed, no registry is touched, and the package is
+left exactly where it was. Before writing anything it shows the file count, the total size, the folder
+every file shares — `content\cars\nissan_skyline_r34_gtr\`, so you can see which car you have — and
+the free space where it is about to land. Point it at your own `content.kspkg` and it says so,
+because copying the archive is _not_ the same as unpacking the game and the two are easy to confuse.
+
+Cancelling is checked between files, never during one, so every file on disk when you stop is
+complete rather than half-written.
+
 ## Building
 
 Needs the [.NET 10 SDK](https://dotnet.microsoft.com/download), and the submodule:
@@ -69,8 +86,8 @@ run — the exe carries the .NET runtime and its native libraries inside itself,
 To cut a release, add the version to the filename **from a terminal**, and upload that:
 
 ```
-mv out/FlatPadInstaller.exe out/FlatPadInstaller-v1.0.0.exe
-sha256sum out/FlatPadInstaller-v1.0.0.exe
+mv out/FlatPadInstaller.exe out/FlatPadInstaller-v1.1.0.exe
+sha256sum out/FlatPadInstaller-v1.1.0.exe
 ```
 
 ⚠️ Not from Explorer. It hides known extensions, so typing a name ending in `.exe` over a file whose
@@ -95,6 +112,10 @@ dotnet run --project FlatPad.Cli -- repair
 dotnet run --project FlatPad.Cli -- uninstall
 dotnet run --project FlatPad.Cli -- revert
 dotnet run --project FlatPad.Cli -- check-unpack
+
+# standalone packages — these need no game folder at all
+dotnet run --project FlatPad.Cli -- inspect-package --input "<file.kspkg>"
+dotnet run --project FlatPad.Cli -- unpack-package  --input "<file.kspkg>" --out "<dir>"
 ```
 
 `--game <path>` is auto-detected from Steam if omitted. Every command is idempotent, and Ctrl+C
@@ -149,11 +170,13 @@ diff py.txt cs.txt
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Track build          | **Byte-identical** to the Python across all 1530 files, from a warm install and a cold start. Uninstall matches too.                                                                                                                          |
 | Verify               | Console output byte-identical, on a passing install _and_ on a deliberately broken one.                                                                                                                                                       |
-| Archive reading      | 201 files sampled from a real 68.5 GB archive extract byte-identical to disk, across a 114,685-entry table.                                                                                                                                   |
+| Archive reading      | 201 files sampled from the real 67.5 GB archive extract byte-identical to disk, across its 115,896-file table. |
 | Unpack round trip    | Run end-to-end against a real 599 MB `.kspkg`: detect → free-space check → extract all 650 files → rename aside → detect unpacked → revert → detect packed. Output is **byte-identical to Nenkai's own CLI**.                                 |
+| Package unpack       | `unpack-package` on the same 599 MB car mod: 607 files / 532.1 MB out of 650 entries (43 are folders), SHA-256 **identical to Nenkai's own CLI** on every file and no extras. `inspect-package` reports those counts and the shared root without extracting. |
+| Package cancellation | Cancelled mid-unpack at three points — 30, 570 and 607 of 607 files. Every file on disk was byte-identical to a full extract; **none truncated**. A hard `Stop-Process` at the same point _does_ leave one 0-byte file, which is what the between-files check exists to avoid. |
 | Unpack at full scale | Run once for real through the GUI: **119,443 files / 68.5 GB**, then reinstall and verify. The whole round trip left all 1530 installed files **byte-identical** to the pre-run baseline.                                                     |
 | Registry repair      | Rehearsed against a real registry: a scratch copy of the live tables with a real base track's 5 entries deleted, repaired from the real 72.5 GB archive. All 5 came back **byte-identical** to the pristine file, and no other entry changed. |
-| Unit tests           | 103, covering the format layer, the closure crawl, the geometry edits, the archive state machine, progress throttling and registry integrity.                                                                                                 |
+| Unit tests           | 134, covering the format layer, the closure crawl, the geometry edits, the archive state machine, progress throttling, registry integrity, the file-table parse and where an entry is allowed to be written. |
 
 **Console divergence from the Python.** The reference implementation is behind: the five bugs a
 real-world v0.8.1 run exposed were fixed here and never back-ported, and it cannot read a `.kspkg`
@@ -170,7 +193,7 @@ comparison is the check that matters, and it is unaffected: all 1530 bytes still
 | `FlatPad.Core/Refs`     | Reference extraction, the `content\…` closure crawl, and copy-with-repath.                                                            |
 | `FlatPad.Core/Scene`    | Reading and reshaping the geometry a track scene is made of.                                                                          |
 | `FlatPad.Core/Tables`   | The `system\*.table` registry editor.                                                                                                 |
-| `FlatPad.Core/Game`     | Finding the install, switching it between packed and unpacked, and reading stock files back out of the archive.                       |
+| `FlatPad.Core/Game`     | Finding the install, switching it between packed and unpacked, reading stock files back out of the archive, and unpacking a standalone `.kspkg`. |
 | `FlatPad.Core/FlatPad`  | The Flat Pad recipe itself: build, install, uninstall, verify, repair.                                                                |
 | `FlatPad.App`           | The WinForms GUI — a thin shell, no logic of its own.                                                                                 |
 | `FlatPad.Cli`           | Dev entry point. Not shipped.                                                                                                         |

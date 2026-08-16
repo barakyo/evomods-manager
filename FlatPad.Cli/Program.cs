@@ -17,6 +17,12 @@ const string Usage = """
                                  (--archive also names the stock reference for verify/repair)
       check-unpack [--archive F] sample the loose files against the archive they came from
 
+    Standalone packages — a car mod, or any .kspkg. These need no game folder:
+
+      inspect-package --input F  what is inside a .kspkg, without extracting it
+      unpack-package  --input F --out DIR
+                                 extract a .kspkg into a folder, changing nothing else
+
     --game <path>   the Assetto Corsa EVO folder. Auto-detected from Steam if omitted.
 
     """;
@@ -30,6 +36,8 @@ if (args.Length == 0)
 string command = args[0];
 string? gameRoot = null;
 string? archive = null;
+string? input = null;
+string? outDir = null;
 for (int i = 1; i < args.Length; i++)
 {
     switch (args[i])
@@ -40,12 +48,33 @@ for (int i = 1; i < args.Length; i++)
         case "--archive" when i + 1 < args.Length:
             archive = args[++i];
             break;
+        case "--input" when i + 1 < args.Length:
+            input = args[++i];
+            break;
+        case "--out" when i + 1 < args.Length:
+            outDir = args[++i];
+            break;
         default:
             Console.Error.WriteLine($"unrecognised argument: {args[i]}");
             Console.Error.Write(Usage);
             return 2;
     }
 }
+
+// Ctrl+C stops long work cleanly rather than killing it mid-file.
+using var cancel = new CancellationTokenSource();
+Console.CancelKeyPress += (_, e) =>
+{
+    e.Cancel = true;
+    Console.Error.WriteLine("\ncancelling…");
+    cancel.Cancel();
+};
+
+// ⚠️ Dispatched before the game-root resolution below, which gives up when no install is found. A
+// standalone package has nothing to do with the game, and refusing to read a car mod because Steam
+// is missing would be nonsense.
+if (command is "inspect-package" or "unpack-package")
+    return Package(command, input, outDir, cancel.Token);
 
 if (gameRoot is null)
 {
@@ -58,15 +87,6 @@ if (gameRoot is null)
 
     Console.Error.WriteLine($"auto-detected: {gameRoot}");
 }
-
-// Ctrl+C stops long work cleanly rather than killing it mid-file.
-using var cancel = new CancellationTokenSource();
-Console.CancelKeyPress += (_, e) =>
-{
-    e.Cancel = true;
-    Console.Error.WriteLine("\ncancelling…");
-    cancel.Cancel();
-};
 
 try
 {
@@ -161,6 +181,62 @@ catch (Exception e) when (e is InstallException or GameArchiveException)
 {
     Console.Error.WriteLine(e.Message);
     return 1;
+}
+
+/// <summary>
+/// Read or extract a standalone package. Self-contained down to the exit code, because it runs
+/// outside the try that wraps every game command.
+/// </summary>
+static int Package(string command, string? input, string? outDir, CancellationToken cancel)
+{
+    if (input is null)
+    {
+        Console.Error.WriteLine($"{command} needs --input <file.kspkg>");
+        return 2;
+    }
+
+    try
+    {
+        PackageInfo info = PackageUnpacker.Inspect(input);
+        Console.WriteLine($"Package  {Path.GetFileName(info.PackagePath)} "
+                          + $"({GameArchive.Bytes(new FileInfo(info.PackagePath).Length)})");
+        Console.WriteLine($"Holds    {info.Files.Count:N0} files, "
+                          + $"{GameArchive.Bytes(info.TotalBytes)} unpacked"
+                          + (info.DirectoryCount > 0 ? $"  ({info.DirectoryCount:N0} folders)" : ""));
+        Console.WriteLine($"Under    {(info.CommonRoot.Length > 0 ? info.CommonRoot : "(no shared folder)")}");
+
+        if (command == "inspect-package")
+            return 0;
+
+        if (outDir is null)
+        {
+            Console.Error.WriteLine("unpack-package needs --out <dir>");
+            return 2;
+        }
+
+        UnpackedPackage result = PackageUnpacker.Unpack(info, outDir, Bar("Unpacking"), cancel);
+        Console.WriteLine($"\nWrote {result.Written:N0} files ({GameArchive.Bytes(result.BytesWritten)}) "
+                          + $"to {Path.GetFullPath(outDir)}");
+        if (result.Ok)
+            return 0;
+
+        // Never silent: an entry the archive lists but that was not written is either a corrupt
+        // package or a hostile one, and both matter more than the files that did come out.
+        Console.Error.WriteLine($"{result.Refused.Count:N0} entries were refused:");
+        foreach (string path in result.Refused.Take(10))
+            Console.Error.WriteLine($"  {path}");
+        return 1;
+    }
+    catch (OperationCanceledException)
+    {
+        Console.Error.WriteLine("\ncancelled — every file written is complete, and the package is untouched.");
+        return 130;
+    }
+    catch (Exception e) when (e is GameArchiveException or IOException or UnauthorizedAccessException)
+    {
+        Console.Error.WriteLine(e.Message);
+        return 1;
+    }
 }
 
 static int Status(string gameRoot)

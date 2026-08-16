@@ -48,7 +48,12 @@ public sealed record GameArchiveState(
 }
 
 /// <param name="Path">Path inside the archive, e.g. <c>content\tracks\sebring\sebring.scene</c>.</param>
-public sealed record ArchiveEntry(string Path, long Offset, long Size);
+/// <param name="IsDirectory">
+/// A directory pseudo-entry rather than a file. ⚠️ Comes from the archive's own flags, never from
+/// <c>Size == 0</c> — a real archive holds dozens of genuinely empty files, and extracting a
+/// directory writes nothing while reporting success.
+/// </param>
+public sealed record ArchiveEntry(string Path, long Offset, long Size, bool IsDirectory);
 
 public sealed record UnpackProgress(int FilesDone, int FilesTotal, long BytesDone, long BytesTotal,
     string CurrentPath)
@@ -79,9 +84,13 @@ public static partial class GameArchive
     public const string DisabledSuffix = ".bak";
 
     /// <summary>Fast enough to look live, slow enough that the consumer keeps up.</summary>
-    private static readonly TimeSpan ReportInterval = TimeSpan.FromMilliseconds(100);
+    internal static readonly TimeSpan ReportInterval = TimeSpan.FromMilliseconds(100);
 
-    [GeneratedRegex(@"^(?<path>.*) - offset:(?<offset>[0-9A-Fa-f]+), size:(?<size>[0-9A-Fa-f]+)")]
+    // The flags group is OPTIONAL on purpose: the submodule writes this line and has changed the
+    // pack format across game versions before. If the tail ever moves, every entry still parses and
+    // reads as a file, which is what the old two-group pattern did anyway.
+    [GeneratedRegex(@"^(?<path>.*) - offset:(?<offset>[0-9A-Fa-f]+), size:(?<size>[0-9A-Fa-f]+)"
+                    + @"(?: hash: \d+ \((?<flags>[^)]*)\))?\s*$")]
     private static partial Regex ListingLine { get; }
 
     public static GameArchiveState Detect(string gameRoot)
@@ -139,25 +148,71 @@ public static partial class GameArchive
             using (PackFile pack = PackFile.Open(packagePath))
                 pack.ListFiles(listing);
 
-            var entries = new List<ArchiveEntry>();
-            foreach (string line in File.ReadLines(listing))
-            {
-                Match m = ListingLine.Match(line);
-                if (!m.Success)
-                    continue;
-                entries.Add(new ArchiveEntry(
-                    m.Groups["path"].Value,
-                    long.Parse(m.Groups["offset"].Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture),
-                    long.Parse(m.Groups["size"].Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture)));
-            }
-
-            entries.Sort((a, b) => a.Offset.CompareTo(b.Offset));   // sequential reads, be kind to HDDs
-            return entries;
+            // Enumerated to completion inside the try — File.ReadLines is lazy, and the finally
+            // below deletes the file out from under it otherwise.
+            return ParseListing(File.ReadLines(listing));
         }
         finally
         {
             if (File.Exists(listing))
                 File.Delete(listing);
+        }
+    }
+
+    /// <summary>The listing the library writes, as entries — in physical order.</summary>
+    /// <remarks>
+    /// Split out from <see cref="ListEntries"/> so the parse can be tested without an archive, which
+    /// is the only part of this the tests can reach. Unparseable lines are skipped rather than
+    /// throwing: the alternative is one unexpected line making a 70 GB archive unreadable.
+    /// </remarks>
+    public static List<ArchiveEntry> ParseListing(IEnumerable<string> lines)
+    {
+        var entries = new List<ArchiveEntry>();
+        foreach (string line in lines)
+        {
+            Match m = ListingLine.Match(line);
+            if (!m.Success)
+                continue;
+            entries.Add(new ArchiveEntry(
+                m.Groups["path"].Value,
+                long.Parse(m.Groups["offset"].Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture),
+                long.Parse(m.Groups["size"].Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture),
+                m.Groups["flags"].Value.Contains("IsDirectory", StringComparison.Ordinal)));
+        }
+
+        entries.Sort((a, b) => a.Offset.CompareTo(b.Offset));   // sequential reads, be kind to HDDs
+        return entries;
+    }
+
+    /// <summary>
+    /// Where an entry may be written, or null when it would land outside <paramref name="outputDir"/>.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ Entry names are read straight out of the package with no validation, and
+    /// <c>ExtractFile</c> writes to <c>Path.Combine(outputDir, name)</c> — which SILENTLY DISCARDS
+    /// <c>outputDir</c> when the name is rooted. So <c>C:\Windows\…</c> is the sharp edge here, not
+    /// <c>..\</c>, and it needs no traversal sequence at all.
+    ///
+    /// This mattered little while every package came from Steam. It matters now that the tool opens
+    /// mod packages downloaded from the internet. Both real packages measured clean — zero rooted
+    /// and zero <c>..</c> paths — which is the moment to add the guard, not after.
+    /// </remarks>
+    public static string? SafeOutputPath(string outputDir, string entryPath)
+    {
+        if (string.IsNullOrWhiteSpace(entryPath))
+            return null;
+
+        try
+        {
+            // The trailing separator is load-bearing: without it "C:\out" contains "C:\output\x".
+            string root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(outputDir))
+                          + Path.DirectorySeparatorChar;
+            string full = Path.GetFullPath(Path.Combine(outputDir, entryPath));
+            return full.StartsWith(root, StringComparison.OrdinalIgnoreCase) ? full : null;
+        }
+        catch (Exception e) when (e is ArgumentException or PathTooLongException or NotSupportedException)
+        {
+            return null;   // unrepresentable is as good as unsafe: refuse it the same way
         }
     }
 
@@ -203,7 +258,9 @@ public static partial class GameArchive
             foreach (ArchiveEntry entry in entries)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!pack.ExtractFile(entry.Path, gameRoot))
+                // Checked before extracting, because ExtractFile builds the output path itself and
+                // there is no way to redirect it — the only defence is not to call it.
+                if (SafeOutputPath(gameRoot, entry.Path) is null || !pack.ExtractFile(entry.Path, gameRoot))
                     failed.Add(entry.Path);
                 done++;
                 doneBytes += entry.Size;
@@ -318,7 +375,10 @@ public static partial class GameArchive
         IProgress<UnpackProgress>? progress = null, CancellationToken cancellationToken = default)
     {
         List<ArchiveEntry> entries = ListEntries(archivePath);
-        List<ArchiveEntry> files = entries.Where(e => e.Size > 0).ToList();
+        // Keyed on the archive's own flag, not on Size > 0. The size test dropped the dozens of
+        // genuinely empty files a real archive holds — from the sample AND from the denominator —
+        // while a directory slipping through crashes the byte compare below.
+        List<ArchiveEntry> files = entries.Where(e => !e.IsDirectory).ToList();
         if (files.Count == 0)
             throw new GameArchiveException($"{Path.GetFileName(archivePath)} lists no files with content");
 
@@ -349,7 +409,11 @@ public static partial class GameArchive
                 else
                 {
                     string extracted = Path.Combine(scratch, entry.Path);
-                    if (!File.ReadAllBytes(loose).AsSpan().SequenceEqual(File.ReadAllBytes(extracted)))
+                    // ExtractFile reports success for an entry it writes nothing for. Reading that
+                    // back would throw and abort the whole check; count it as a difference instead.
+                    if (!File.Exists(extracted))
+                        different.Add(entry.Path);
+                    else if (!File.ReadAllBytes(loose).AsSpan().SequenceEqual(File.ReadAllBytes(extracted)))
                         different.Add(entry.Path);
                 }
 
