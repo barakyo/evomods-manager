@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>EvoMods.App</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWinUI>true</UseWinUI>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!-- Required even though nothing here is packaged as MSIX. It is what runs MakePri, and
+         without the app's own resources.pri WinUI cannot load the compiled XAML: the app builds,
+         installs and updates perfectly, then dies at InitializeComponent with a bare E_FAIL. -->
+    <EnableMsixTooling>true</EnableMsixTooling>
+
+    <!-- Velopack owns the entry point: install/update/uninstall hooks run through this same exe
+         and must complete before a window is ever created. See Program.cs. -->
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+
+    <!-- Unpackaged and fully self-contained. Both halves are needed and they cover different
+         things: WindowsAppSDKSelfContained carries the native Windows App SDK, SelfContained
+         carries the .NET runtime. WinUI 3 cannot produce a single-file exe — the native runtime
+         files have to stay loose next to it — which is why the installer is the delivery
+         mechanism rather than a convenience. -->
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+
+    <AssemblyName>EvoMods</AssemblyName>
+    <Version>0.0.1</Version>
+
+    <AssemblyTitle>EvoMods Manager</AssemblyTitle>
+    <Product>EvoMods Manager</Product>
+    <Company>itsbarakyo</Company>
+    <Description>Manages Assetto Corsa EVO mods: tracks, post-processing filters and camera settings.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
+    <PackageReference Include="Velopack" Version="1.2.0" />
+    <ProjectReference Include="..\FlatPad.Core\FlatPad.Core.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -3,4 +3,5 @@
   <Project Path="FlatPad.Cli/FlatPad.Cli.csproj" />
   <Project Path="FlatPad.Core.Tests/FlatPad.Core.Tests.csproj" />
   <Project Path="FlatPad.Core/FlatPad.Core.csproj" />
+  <Project Path="EvoMods.App/EvoMods.App.csproj" />
 </Solution>
