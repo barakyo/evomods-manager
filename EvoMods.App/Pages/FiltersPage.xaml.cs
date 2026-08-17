@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 
 using EvoMods.Core.Filters;
+using EvoMods.Core.Game;
 
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -53,6 +54,16 @@ public sealed partial class FiltersPage : Page
         if (_gameRoot is null)
         {
             Blocked("No Assetto Corsa EVO install found. Nothing here can run without one.");
+            return;
+        }
+
+        // ⚠️ While a live archive is present the game reads it and ignores loose content, so a filter
+        // installed now would be written correctly, registered correctly, and never load. Refusing is
+        // the only honest answer, and Game is one click away.
+        if (GameArchive.Detect(_gameRoot).Mode == ArchiveMode.Packed)
+        {
+            Blocked("The game is still packed, so it reads its archive and ignores loose content — "
+                + "filters installed now would never load. Unpack it on the Game screen first.");
             return;
         }
 

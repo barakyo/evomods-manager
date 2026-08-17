@@ -20,6 +20,11 @@
                     <FontIcon Glyph="&#xE80F;" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
+            <NavigationViewItem Content="Game" Tag="game">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE7B8;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
             <NavigationViewItem Content="Filters" Tag="filters">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE790;" />
