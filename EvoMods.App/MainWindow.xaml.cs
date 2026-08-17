@@ -32,6 +32,7 @@ public sealed partial class MainWindow : Window
         ContentFrame.Navigate(item.Tag switch
         {
             "game" => typeof(GamePage),
+            "flatpad" => typeof(FlatPadPage),
             "filters" => typeof(FiltersPage),
             _ => typeof(HomePage),
         });

@@ -1,0 +1,62 @@
+<Page
+    x:Class="EvoMods.App.Pages.FlatPadPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    mc:Ignorable="d"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006">
+
+    <Grid Padding="28" RowSpacing="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Spacing="2">
+            <TextBlock Text="Flat Pad" Style="{StaticResource TitleTextBlockStyle}" />
+            <TextBlock Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       Text="A 1.5 km dead-flat, wall-free, scenery-free test pad that spawns your car ready to drive. Built from your own game files — nothing is downloaded." />
+        </StackPanel>
+
+        <InfoBar x:Name="Notice" Grid.Row="1" IsOpen="False" IsClosable="False" />
+
+        <Border Grid.Row="2" CornerRadius="8" Padding="16" BorderThickness="1"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+            <Grid ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Status" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                <TextBlock Grid.Column="1" x:Name="StatusText" TextWrapping="Wrap" />
+            </Grid>
+        </Border>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="12">
+            <Button x:Name="InstallButton" Click="OnInstall" Style="{StaticResource AccentButtonStyle}" />
+            <Button x:Name="UninstallButton" Content="Uninstall Flat Pad" Click="OnUninstall" />
+            <Button x:Name="VerifyButton" Content="Verify Flat Pad" Click="OnVerify" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="4" x:Name="ProgressPanel" Spacing="6" Visibility="Collapsed">
+            <ProgressBar x:Name="Bar" IsIndeterminate="True" Height="6" />
+            <TextBlock x:Name="ProgressText" Style="{StaticResource CaptionTextBlockStyle}" />
+        </StackPanel>
+
+        <Border Grid.Row="5" CornerRadius="8" Padding="12" BorderThickness="1" MinHeight="120"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+            <ScrollViewer x:Name="LogScroller" VerticalScrollBarVisibility="Auto">
+                <TextBlock x:Name="LogText" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                           FontFamily="Consolas" FontSize="12"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</Page>

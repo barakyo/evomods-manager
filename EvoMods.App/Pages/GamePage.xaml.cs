@@ -80,6 +80,14 @@ public sealed partial class GamePage : Page
                 $"{archive.DisabledPackages.Count} renamed archives are here. Reverting will ask which.",
                 InfoBarSeverity.Informational);
         }
+        else if (archive.Mode == ArchiveMode.Unpacked)
+        {
+            // The single most expensive mistake available from here, and nothing else warns about it.
+            Warn("While unpacked",
+                "Do not use Steam's \"Verify integrity of game files\" — it re-downloads the whole "
+                + "archive. A game update also puts the game back to packed; unpacking again fixes that.",
+                InfoBarSeverity.Informational);
+        }
         else
         {
             Notice.IsOpen = false;

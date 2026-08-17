@@ -25,6 +25,11 @@
                     <FontIcon Glyph="&#xE7B8;" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
+            <NavigationViewItem Content="Flat Pad" Tag="flatpad">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE9D9;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
             <NavigationViewItem Content="Filters" Tag="filters">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE790;" />
