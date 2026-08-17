@@ -47,6 +47,19 @@ public static class FilterSpec
         "Natural 5", "Natural 6", "Natural 8", "Washed",
     ];
 
+    /// <summary>Every filter the game registers, hidden or not, in the order the table lists them.</summary>
+    /// <remarks>
+    /// The same fallback as <see cref="ShippedHidden"/> and needed for the same survey: without it,
+    /// an install whose archive cannot be read would report <c>Default</c> and <c>Natural</c> as
+    /// somebody else's filters, because "not in the hidden list" is not the same as "not stock".
+    /// </remarks>
+    public static readonly string[] Shipped =
+    [
+        "Default", "Natural", "TV 1", "Cinematic 1", "Cinematic 2", "Cinematic 3",
+        "TV 3_1", "Natural 2", "Natural 3", "Natural 6", "Natural 8", "Natural 5",
+        "TV 3_low", "TV 4", "TV 5", "Washed", "Cinematic 4",
+    ];
+
     /// <summary>A filter lives in a folder named after itself, holding a file named after it too.</summary>
     public static string InstallRef(string folder) => $"{PpDir}/{folder}/{folder}.postprocessing";
 
