@@ -115,8 +115,12 @@ public sealed partial class FiltersPage : Page
         if (_survey is null)
             return;
 
+        // Every label names its verb AND its object, so none of them depends on having read the
+        // button's previous state or the one beside it. "Hide unlocked filters" rather than "Remove
+        // hidden filters": nothing is removed, and a second button that reads as deletion next to
+        // one that really is deletion is a misread waiting to happen.
         bool anyHidden = _survey.ShippedHidden.Any(f => f.State == FilterState.StockHidden);
-        UnlockButton.Content = anyHidden ? "Unlock hidden filters" : "Re-hide them";
+        UnlockButton.Content = anyHidden ? "Unlock hidden filters" : "Hide unlocked filters";
         UnlockButton.IsEnabled = _survey.ShippedHidden.Any();
 
         List<FilterStatus> ours = [.. _survey.Filters.Where(IsOurs)];
@@ -124,7 +128,10 @@ public sealed partial class FiltersPage : Page
             is FilterState.RegisteredButFileMissing or FilterState.FilesPresentButNotRegistered);
         bool allInstalled = ours.Count > 0 && ours.All(f => f.State == FilterState.Installed);
 
-        InstallButton.Content = anyBroken ? "Repair" : allInstalled ? "Remove them" : "Install EvoMods filters";
+        InstallButton.Content =
+            anyBroken ? "Repair EvoMods filters"
+            : allInstalled ? "Uninstall EvoMods filters"
+            : "Install EvoMods filters";
         InstallButton.IsEnabled = true;
     }
 
@@ -144,8 +151,8 @@ public sealed partial class FiltersPage : Page
         bool remove = ours.Count > 0 && ours.All(f => f.State == FilterState.Installed);
 
         await Run(installer => remove ? installer.Uninstall(_bundle) : installer.Install(_bundle),
-            remove ? "Removed {0} filter(s)." : "Installed {0} filter(s).",
-            remove ? "nothing to remove." : "nothing to install.");
+            remove ? "Uninstalled {0} filter(s)." : "Installed {0} filter(s).",
+            remove ? "nothing to uninstall." : "nothing to install.");
     }
 
     /// <summary>
