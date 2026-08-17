@@ -12,7 +12,10 @@ public sealed partial class HomePage : Page
     {
         InitializeComponent();
 
-        VersionText.Text = $"Version {AppInfo.Version}";
+        // Says where a new build would come from, because "this thing updates itself" is a claim a
+        // user should be able to check without reading the source.
+        VersionText.Text = $"Version {AppInfo.Version}  ·  updates from "
+            + Updates.Describe().Replace("https://", "");
         GameText.Text = DescribeGame();
     }
 
@@ -32,12 +35,7 @@ public sealed partial class HomePage : Page
 
     private async void OnCheckForUpdates(object sender, RoutedEventArgs e)
     {
-        UpdateManager? manager = Updates.Manager();
-        if (manager is null)
-        {
-            UpdateText.Text = "No update feed configured. Set EVOMODS_UPDATE_FEED.";
-            return;
-        }
+        UpdateManager manager = Updates.Manager();
 
         UpdateButton.IsEnabled = false;
         try
