@@ -1,3 +1,5 @@
+using System.Text;
+
 using EvoMods.Core.Protobuf;
 using EvoMods.Core.Refs;
 
@@ -36,6 +38,36 @@ public static class TableEditor
 
     public static string? TextAt(PbNode? node, params long[] path) => Child(node, path)?.Text;
 
+    /// <summary>A string leaf's text, decoded from its bytes rather than from the parse's guess.</summary>
+    /// <remarks>
+    /// ⚠️ <see cref="PbTree.ParseTree"/> tries <c>IsMessage</c> BEFORE <c>LooksText</c>, so a payload
+    /// that happens to be valid protobuf becomes a message and <see cref="PbNode.Text"/> stays null.
+    /// Real names do this: <c>AC1_Movie</c> is nine bytes starting 0x41, which reads as one I64 field
+    /// with exactly eight bytes behind it. <see cref="TextAt"/> returns null for such a row, so
+    /// anything that IDENTIFIES a row by name has to come through here instead or it will silently
+    /// skip exactly the rows it was looking for.
+    /// </remarks>
+    public static string? RawText(PbNode? node) =>
+        node is null || node.Wire != WireType.Len ? null : Encoding.UTF8.GetString(node.Raw);
+
+    /// <summary>Text of a nested string leaf, by the same rules as <see cref="RawText"/>.</summary>
+    public static string? RawTextAt(PbNode? node, params long[] path) => RawText(Child(node, path));
+
+    /// <summary>Replace a string leaf, dropping the message parse that would otherwise shadow it.</summary>
+    /// <remarks>
+    /// ⚠️ <see cref="PbTree.EncodeTree"/> checks <c>Dirty &amp;&amp; Message is not null</c> FIRST, so
+    /// assigning <see cref="PbNode.Text"/> on a node that also parsed as a message writes the OLD
+    /// bytes back. Clearing <see cref="PbNode.Message"/> is what makes the assignment take.
+    /// Marks only this node — the caller still owns the ancestor chain. See <see cref="MarkDirty"/>.
+    /// </remarks>
+    public static void SetText(PbNode node, string value)
+    {
+        node.Text = value;
+        node.Message = null;
+        node.Raw = Encoding.UTF8.GetBytes(value);
+        node.Dirty = true;
+    }
+
     /// <summary>Deep-copy a subtree — round-tripped through the encoder, so lossless by construction.</summary>
     public static PbNode CloneNode(PbNode node) =>
         PbTree.ParseTree(PbTree.EncodeTree([node]))[0];
@@ -61,6 +93,66 @@ public static class TableEditor
         cur.Varint = value;
         foreach (PbNode n in chain[..^1])
             n.Dirty = true;
+    }
+
+    /// <summary>Mark length-delimited nodes dirty, so their re-serialised bodies actually get written.</summary>
+    /// <remarks>
+    /// ⚠️ <see cref="PbNode.Dirty"/> is NOT propagated, and <see cref="PbTree.EncodeTree"/> consults it
+    /// only on wire-2 nodes. An edit whose ancestors are still clean is re-encoded from their
+    /// <see cref="PbNode.Raw"/> and vanishes with no error at all. <see cref="SetVarint"/> walks the
+    /// chain it descended; anything that navigates to a node by hand has to say so here. Nulls and
+    /// non-wire-2 nodes are ignored, so a chain can be passed verbatim.
+    /// </remarks>
+    public static void MarkDirty(params PbNode?[] chain)
+    {
+        foreach (PbNode? n in chain)
+        {
+            if (n is not null && n.Wire == WireType.Len)
+                n.Dirty = true;
+        }
+    }
+
+    /// <summary>Insert a field into a message node, keeping its children in numeric order.</summary>
+    /// <remarks>
+    /// ⚠️ <see cref="PbTree.ParseTree"/> preserves WIRE order, and protobuf does not require that to
+    /// be numeric. So this ASSERTS ascending order rather than assuming it: a message shaped some
+    /// other way is one this code was not written against, and refusing beats writing a field into a
+    /// position the game has never been handed. Marks <paramref name="message"/> dirty; the caller
+    /// still owns everything above it.
+    /// </remarks>
+    public static void InsertField(PbNode message, PbNode field)
+    {
+        List<PbNode> children = message.Message
+            ?? throw new InvalidDataException($"[{message.Number}] holds no message to insert into");
+
+        for (int i = 1; i < children.Count; i++)
+        {
+            if (children[i].Number < children[i - 1].Number)
+            {
+                throw new InvalidDataException(
+                    $"[{message.Number}] has fields out of numeric order " +
+                    $"({children[i - 1].Number} then {children[i].Number}) — refusing to guess " +
+                    "where a new one belongs");
+            }
+        }
+
+        int at = children.FindIndex(n => n.Number > field.Number);
+        children.Insert(at < 0 ? children.Count : at, field);
+        message.Dirty = true;
+    }
+
+    /// <summary>Drop every field with this number from a message node. Returns how many went.</summary>
+    /// <remarks>Marks <paramref name="message"/> dirty only when something was actually removed.</remarks>
+    public static int RemoveFields(PbNode message, long number)
+    {
+        List<PbNode>? children = message.Message;
+        if (children is null)
+            return 0;
+
+        int removed = children.RemoveAll(n => n.Number == number);
+        if (removed > 0)
+            message.Dirty = true;
+        return removed;
     }
 
     /// <summary>The <c>[2]</c> container of a *.table file and its repeated <c>[2.3]</c> entries.</summary>
