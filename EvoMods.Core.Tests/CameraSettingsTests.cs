@@ -232,6 +232,55 @@ public class CameraSettingsTests : IDisposable
         });
     }
 
+    // ---- describing a value
+
+    [Theory]
+    [InlineData(4.5f, 0.22f)]   // stock
+    [InlineData(3.0f, 0.33f)]   // subtle lag
+    [InlineData(1.5f, 0.67f)]   // lags visibly, recovers within a corner
+    [InlineData(0.5f, 2.0f)]    // still very loose
+    [InlineData(0.05f, 20f)]    // never catches up
+    public void Chase_lag_settle_time_matches_what_was_measured_in_game(float value, float settle)
+    {
+        // Computed as 1/value rather than interpolated between these points, because the setting is
+        // a first-order lag and that IS its time constant. These five are the measurements it has to
+        // keep agreeing with.
+        CameraField chaseLag = CameraSpec.Fields.Single(f => f.Number == 11);
+
+        string? readout = CameraSpec.Readout(chaseLag, value);
+
+        Assert.NotNull(readout);
+        Assert.Equal(settle, float.Parse(readout.Trim('~', 's')), 1);
+    }
+
+    [Fact]
+    public void A_setting_with_no_derived_unit_shows_no_readout()
+    {
+        CameraField horizon = CameraSpec.Fields.Single(f => f.Number == 12);
+
+        Assert.Null(CameraSpec.Readout(horizon, 0.4f));
+    }
+
+    [Fact]
+    public void Every_setting_describes_itself_at_every_point_on_its_slider()
+    {
+        // A description that only appeared on the five measured values would be blank almost
+        // everywhere the slider can actually stop.
+        foreach (CameraField field in CameraSpec.Fields)
+        {
+            for (float v = field.Min; v <= field.Max; v += (field.Max - field.Min) / 40f)
+                Assert.False(string.IsNullOrWhiteSpace(CameraSpec.Feel(field, v)), $"{field.Name} at {v}");
+        }
+    }
+
+    [Fact]
+    public void The_stock_chase_lag_describes_itself_as_stock()
+    {
+        CameraField chaseLag = CameraSpec.Fields.Single(f => f.Number == 11);
+
+        Assert.Contains("how the game ships", CameraSpec.Feel(chaseLag, chaseLag.Stock));
+    }
+
     [Fact]
     public void No_setting_measured_as_inert_is_offered()
     {

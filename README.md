@@ -234,7 +234,17 @@ Two settings were measured as dramatic, and both are chase-camera only, so they 
 extreme without affecting how the car drives:
 
 - **Chase lag** (stock 4.5) — first-order lag toward the camera's target orientation; lower is
-  laggier. At 0.05 the camera barely follows the car through corners.
+  laggier. Because it is first-order, the settle time is just `1 / value`, which is what the slider
+  shows alongside the number — `1.5` means nothing on its own, `~0.7 s` is a duration you can picture
+  against a corner. It agrees with every settle time measured in game:
+
+  | Chase lag | Settle | Feel |
+  | --- | --- | --- |
+  | 0.05 | ~20 s | never catches up |
+  | 0.5 | ~2 s | still very loose |
+  | 1.5 | ~0.7 s | lags visibly, recovers within a corner |
+  | 3.0 | ~0.3 s | subtle lag |
+  | 4.5 | ~0.2 s | stock |
 - **Horizon lock** (stock 0.4) — at 0 the camera sits low and level behind the car, at 1 it sits high
   and looks down. Dramatic on pitched or banked terrain, and **invisible on flat ground**, which is
   why testing it on the flat pad reads as broken.

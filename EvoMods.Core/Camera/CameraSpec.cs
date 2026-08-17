@@ -67,13 +67,10 @@ public static class CameraSpec
     public static readonly CameraField[] Fields =
     [
         new(11, "chasecam_rotation_lag_speed", "Chase lag", 4.5f, 0.05f, 10f, CameraEffect.Works,
-            "Chase camera only, so it can sit at any cinematic extreme without affecting how the car "
-            + "drives. First-order lag toward the camera's target orientation — lower is laggier. At "
-            + "0.05 the camera barely follows the car through corners."),
+            "First-order lag toward the camera's target orientation — lower is laggier."),
 
         new(12, "horizon_lock", "Horizon lock", 0.4f, 0f, 1f, CameraEffect.Works,
-            "At 0 the camera sits low and level behind the car; at 1 it sits high and looks down. "
-            + "Dramatic on pitched or banked terrain, and invisible on flat ground — which is why "
+            "Dramatic on pitched or banked terrain, and invisible on flat ground — which is why "
             + "testing it on a flat pad reads as broken."),
 
         new(10, "look_around_speed", "Look-around speed", 10f, 1f, 30f, CameraEffect.Global,
@@ -100,4 +97,49 @@ public static class CameraSpec
     /// </remarks>
     public static readonly string[] KnownInert =
         ["enableShake", "g_forces_shake", "gForceLag", "worldAligned"];
+
+    /// <summary>
+    /// The value in units somebody can picture, or null when the number already says enough.
+    /// </summary>
+    /// <remarks>
+    /// Chase lag is a first-order lag toward the camera's target orientation, so its time constant
+    /// is simply <c>1 / value</c> — which is why this is computed rather than interpolated between
+    /// measured points. It agrees with every settle time measured in game: 4.5 → 0.22 s, 3.0 →
+    /// 0.33 s, 1.5 → 0.67 s, 0.5 → 2 s, 0.05 → 20 s.
+    /// <para>
+    /// This is the whole reason the readout exists. "1.5" means nothing on its own; "~0.7 s" is a
+    /// duration a person can picture against a corner.
+    /// </para>
+    /// </remarks>
+    public static string? Readout(CameraField field, float value) =>
+        field.Number == 11 && value > 0 ? $"~{1f / value:0.##}s" : null;
+
+    /// <summary>What a value actually feels like, from what was measured at that setting.</summary>
+    /// <remarks>
+    /// Bands rather than exact matches, because the slider moves continuously and a description that
+    /// only appeared on five exact values would be blank almost everywhere. Fields with nothing
+    /// measured per-value fall back to their standing note.
+    /// </remarks>
+    public static string Feel(CameraField field, float value) => field.Number switch
+    {
+        11 => "Lower is laggier. " + value switch
+        {
+            < 0.15f => "Never catches up — the camera barely follows the car through corners.",
+            < 0.8f => "Still very loose.",
+            < 2.2f => "Lags visibly, but recovers within a corner.",
+            < 3.8f => "Subtle lag.",
+            < 5.5f => "About how the game ships.",
+            _ => "Tighter than stock — the camera stays locked to the car.",
+        },
+
+        12 => value switch
+        {
+            < 0.15f => "Low and level behind the car — immersive and car-focused.",
+            < 0.45f => "Slightly raised, close to how the game ships.",
+            < 0.75f => "Raised, looking down a little.",
+            _ => "High and looking down — observational.",
+        } + " Invisible on flat ground.",
+
+        _ => field.Note,
+    };
 }

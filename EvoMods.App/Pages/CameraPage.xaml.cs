@@ -17,6 +17,7 @@ public sealed partial class CameraPage : Page
 {
     private readonly Dictionary<CameraField, Slider> _sliders = [];
     private readonly Dictionary<CameraField, TextBlock> _readouts = [];
+    private readonly Dictionary<CameraField, TextBlock> _feels = [];
     private CameraReading _onDisk = new(new Dictionary<int, float>(), Exists: false);
 
     public CameraPage()
@@ -53,9 +54,7 @@ public sealed partial class CameraPage : Page
     /// </remarks>
     private static TextBlock Header(CameraEffect effect) => new()
     {
-        Text = effect == CameraEffect.Works
-            ? "Chase camera only — measured, and dramatic"
-            : "Affects the view you drive from",
+        Text = effect == CameraEffect.Works ? "Chase camera settings" : "Driver view settings",
         Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"],
         Margin = new Thickness(0, 8, 0, 0),
     };
@@ -64,10 +63,19 @@ public sealed partial class CameraPage : Page
     {
         var value = new TextBlock
         {
-            MinWidth = 52,
-            TextAlignment = TextAlignment.Right,
+            MinWidth = 96,
             VerticalAlignment = VerticalAlignment.Center,
             Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"],
+        };
+
+        // The description changes as the slider moves, which is the point of it: a number like 1.5
+        // says nothing on its own, and "lags visibly, but recovers within a corner" does.
+        var feel = new TextBlock
+        {
+            TextWrapping = TextWrapping.Wrap,
+            MaxWidth = 640,
+            Style = (Style)Application.Current.Resources["CaptionTextBlockStyle"],
+            Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
         };
 
         var slider = new Slider
@@ -75,48 +83,43 @@ public sealed partial class CameraPage : Page
             Minimum = field.Min,
             Maximum = field.Max,
             StepFrequency = Step(field),
-            Width = 320,
+            Width = 300,
             Margin = new Thickness(0, -4, 0, -4),
         };
         slider.ValueChanged += (_, _) =>
         {
-            value.Text = slider.Value.ToString("0.##");
+            Describe(field, slider, value, feel);
             UpdateButtons();
         };
 
         _sliders[field] = slider;
         _readouts[field] = value;
+        _feels[field] = feel;
 
         var head = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
         head.Children.Add(new TextBlock
         {
-            Text = field.Label,
-            MinWidth = 150,
+            Text = $"{field.Label} (default: {field.Stock:0.##})",
+            MinWidth = 210,
             VerticalAlignment = VerticalAlignment.Center,
             Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"],
         });
         head.Children.Add(slider);
         head.Children.Add(value);
-        head.Children.Add(new TextBlock
-        {
-            Text = $"stock {field.Stock:0.##}",
-            VerticalAlignment = VerticalAlignment.Center,
-            Style = (Style)Application.Current.Resources["CaptionTextBlockStyle"],
-            Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
-        });
 
         var row = new StackPanel { Spacing = 2 };
         row.Children.Add(head);
-        row.Children.Add(new TextBlock
-        {
-            Text = field.Note,
-            TextWrapping = TextWrapping.Wrap,
-            MaxWidth = 620,
-            Style = (Style)Application.Current.Resources["CaptionTextBlockStyle"],
-            Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
-        });
-
+        row.Children.Add(feel);
         return row;
+    }
+
+    /// <summary>Put the current value, and what it feels like, next to the slider.</summary>
+    private static void Describe(CameraField field, Slider slider, TextBlock value, TextBlock feel)
+    {
+        float v = (float)slider.Value;
+        string? readout = CameraSpec.Readout(field, v);
+        value.Text = readout is null ? v.ToString("0.##") : $"{v:0.##} ({readout})";
+        feel.Text = CameraSpec.Feel(field, v);
     }
 
     /// <summary>Fine enough to tune with, coarse enough that the number stops jittering.</summary>
@@ -131,10 +134,10 @@ public sealed partial class CameraPage : Page
         {
             slider.Value = _onDisk.ValueOf(field);
 
-            // Set the readout here rather than leaning on ValueChanged: assigning a value the slider
+            // Describe here rather than leaning on ValueChanged: assigning a value the slider
             // already holds raises no event, so a setting that happens to sit at the slider's
             // starting value would show a blank number. Horizon lock at 0 does exactly that.
-            _readouts[field].Text = slider.Value.ToString("0.##");
+            Describe(field, slider, _readouts[field], _feels[field]);
         }
 
         if (!_onDisk.Exists)
