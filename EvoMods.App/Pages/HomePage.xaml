@@ -6,9 +6,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006">
 
-    <Grid x:Name="RootGrid" AllowDrop="True"
-          DragOver="OnDragOver" Drop="OnDrop"
-          Padding="28" RowSpacing="20">
+    <Grid Padding="28" RowSpacing="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -27,22 +25,6 @@
             <TextBlock x:Name="GameText" TextWrapping="Wrap" IsTextSelectionEnabled="True"
                        Style="{StaticResource BodyTextBlockStyle}" />
         </StackPanel>
-
-        <!-- Kept from the walking skeleton: drop-to-install is the interaction every later feature
-             leans on, so the handlers stay wired even before anything acts on them. -->
-        <Border Grid.Row="2" MinHeight="120" CornerRadius="8" Padding="16"
-                BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="4">
-                <TextBlock Text="Drop a file here" HorizontalAlignment="Center"
-                           Style="{StaticResource BodyStrongTextBlockStyle}" />
-                <TextBlock x:Name="DropText" HorizontalAlignment="Center" TextWrapping="Wrap"
-                           TextAlignment="Center"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                           Style="{StaticResource CaptionTextBlockStyle}"
-                           Text="Nothing dropped yet." />
-            </StackPanel>
-        </Border>
 
         <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
             <Button x:Name="UpdateButton" Content="Check for updates" Click="OnCheckForUpdates" />

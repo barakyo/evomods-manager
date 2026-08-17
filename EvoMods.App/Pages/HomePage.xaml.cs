@@ -3,9 +3,6 @@ using Microsoft.UI.Xaml.Controls;
 
 using Velopack;
 
-using Windows.ApplicationModel.DataTransfer;
-using Windows.Storage;
-
 namespace EvoMods.App.Pages;
 
 /// <summary>Where the game is, which build this is, and whether a newer one exists.</summary>
@@ -31,34 +28,6 @@ public sealed partial class HomePage : Page
             1 => found[0],
             _ => string.Join(Environment.NewLine, found),
         };
-    }
-
-    private void OnDragOver(object sender, DragEventArgs e)
-    {
-        e.AcceptedOperation = DataPackageOperation.Copy;
-        e.DragUIOverride.Caption = "Inspect";
-        e.DragUIOverride.IsGlyphVisible = true;
-    }
-
-    private async void OnDrop(object sender, DragEventArgs e)
-    {
-        if (!e.DataView.Contains(StandardDataFormats.StorageItems))
-        {
-            DropText.Text = "That wasn't a file.";
-            return;
-        }
-
-        try
-        {
-            IReadOnlyList<IStorageItem> items = await e.DataView.GetStorageItemsAsync();
-            DropText.Text = items.Count == 0
-                ? "Nothing came through."
-                : string.Join(Environment.NewLine, items.Select(i => i.Name));
-        }
-        catch (Exception ex)
-        {
-            DropText.Text = $"Drop failed: {ex.Message}";
-        }
     }
 
     private async void OnCheckForUpdates(object sender, RoutedEventArgs e)
