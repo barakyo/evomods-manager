@@ -36,8 +36,34 @@ weight and can go.
 
 ---
 
-# What this tool does *not* redistribute
+## Pure — Peter Boese
+
+<https://www.patreon.com/peterboese>
+
+Not bundled, not required, and no code from it is used. It is credited because the tone curve in
+four of the five post-processing filters this app installs — `Video_Hero`, `Video_Hero_Soft`,
+`Video_Punch` and `Video_Cine` — was produced by a least-squares fit of EVO's five-parameter curve to
+Pure 2.57's response. The numbers are ours; the look they reproduce is Peter Boese's paid work, and
+those four filters are derivative of it.
+
+`Video_Clean` is not. It uses Kunos' own Natural curve with grading on top.
+
+---
+
+# What this tool redistributes, and what it does not
 
 The Flat Pad track is **derived on your machine from your own copy of the game**. Its geometry,
-textures and irradiance volumes originate from Assetto Corsa EVO (© Kunos Simulazioni) and are
-never shipped with this tool. Nothing in this repository contains game assets.
+textures and irradiance volumes originate from Assetto Corsa EVO (© Kunos Simulazioni) and are never
+shipped with this tool.
+
+The post-processing filters are the exception, and the one place this repository does carry content
+that started as a game asset. Each of the five `.postprocessing` files under
+`EvoMods.Core/Filters/Assets`, and the `exposure_compensation.curve` beside them, began as Kunos'
+`natural1` equivalents with between three and nine values changed — `video_clean` differs in exactly
+three. They are 5,577 bytes in total, they contain no geometry, textures or imagery, and they are
+parameter sets rather than assets in any meaningful sense. But "nothing in this repository contains
+game assets", which this file used to say, is no longer true, and saying so plainly is better than
+keeping a claim that has quietly stopped holding.
+
+Every curve those filters actually reference — six of the seven each — is left to resolve against the
+player's own install. Nothing from `natural1` is copied.

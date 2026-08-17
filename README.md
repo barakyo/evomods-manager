@@ -185,6 +185,39 @@ four hunks, and the verdicts differ — the Python still reports the _base game'
 reference as a failure. Re-measure it rather than trusting a remembered number. The file-level
 comparison is the check that matters, and it is unaffected: all 1530 bytes still agree.
 
+## Post-processing filters
+
+Two things, both in the WinUI app under **Filters**, and both reversible.
+
+**Unlock the filters the game hides.** EVO registers nine filters without the flag that offers them
+in the video options — `TV 1`, `TV 3_1`, `TV 3_low`, `TV 4`, `TV 5`, `Natural 5`, `Natural 6`,
+`Natural 8` and `Washed`. They load fine and simply cannot be chosen. Showing one adds two bytes to
+its row; hiding it again removes them, and the file comes back byte-identical.
+
+**Install five filters built for video capture** — `Video_Hero`, `Video_Hero_Soft`, `Video_Punch`,
+`Video_Cine` and `Video_Clean`. They ship inside the app rather than being downloaded, so installing
+needs no network and nothing to drop. See [`THIRD-PARTY.md`](THIRD-PARTY.md) for what they derive
+from.
+
+Three things about this format are worth knowing, because all three fail **silently** — the filter
+registers, appears in the list, is selectable, and the previously chosen one just keeps rendering:
+
+- **A filter name is a localization key**, not a display string. A new name containing a space never
+  loads. The stock names have spaces only because `en.loc` defines them.
+- **A filter is not always one file.** Each references seven curves; six resolve against the game's
+  own `natural1` folder, and `Video_Hero` and `Video_Hero_Soft` also point into `pure_gamma_full`.
+  The installer works out what to copy by reading what each filter actually references, rather than
+  from a list someone maintains, so installing one filter on its own still brings what it needs.
+- **Registration does not survive a game patch or a Steam file verification.**
+  `system/post_processing.table` lives in the game directory, so the files under `content/` survive
+  while the rows revert. The screen reports that state as *files present, not registered*; installing
+  again puts the rows back.
+
+Rows are only ever added by cloning an existing one and swapping two strings — the row schema was
+never recovered, and two of its fields are still unidentified. Nothing here writes a `.bak`, and
+nothing restores one: registration is edited by dropping our own rows and re-adding them, so another
+tool's rows and anything a game update added are left alone.
+
 ## Layout
 
 |                         |                                                                                                                                       |
@@ -195,7 +228,9 @@ comparison is the check that matters, and it is unaffected: all 1530 bytes still
 | `EvoMods.Core/Tables`   | The `system\*.table` registry editor.                                                                                                 |
 | `EvoMods.Core/Game`     | Finding the install, switching it between packed and unpacked, reading stock files back out of the archive, and unpacking a standalone `.kspkg`. |
 | `EvoMods.Core/FlatPad`  | The Flat Pad recipe itself: build, install, uninstall, verify, repair.                                                                |
-| `FlatPad.App`           | The WinForms GUI — a thin shell, no logic of its own.                                                                                 |
+| `EvoMods.Core/Filters`  | Post-processing filters: reading `post_processing.table`, showing the ones the game hides, and installing the filters carried in `Filters/Assets`. |
+| `EvoMods.App`           | The WinUI 3 GUI — a shell and a page per feature, no logic of its own.                                                                |
+| `FlatPad.App`           | The WinForms GUI — a thin shell, no logic of its own. Kept until the WinUI app reaches parity on unpack and Flat Pad.                 |
 | `FlatPad.Cli`           | Dev entry point. Not shipped.                                                                                                         |
 
 ## Licence
