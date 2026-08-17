@@ -1,5 +1,5 @@
-using FlatPad.Core.FlatPad;
-using FlatPad.Core.Game;
+using EvoMods.Core.FlatPad;
+using EvoMods.Core.Game;
 
 // Development entry point. Not shipped — the distributable is the WinForms app; this exists so the
 // logic can be exercised, and diffed against the Python reference implementation, without a GUI.

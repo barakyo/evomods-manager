@@ -1,6 +1,6 @@
 using System.Reflection;
 
-using FlatPad.Core.Game;
+using EvoMods.Core.Game;
 
 using Microsoft.UI.Xaml;
 
@@ -28,7 +28,7 @@ public sealed partial class MainWindow : Window
                 .InformationalVersion.Split('+')[0]
         ?? "unknown";
 
-    /// <summary>Calls into FlatPad.Core, which is the point: the reference has to resolve at run time.</summary>
+    /// <summary>Calls into EvoMods.Core, which is the point: the reference has to resolve at run time.</summary>
     private static string DescribeGame()
     {
         try

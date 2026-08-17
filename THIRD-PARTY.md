@@ -19,7 +19,7 @@ across game versions.
 ### Worked around here, worth fixing upstream
 
 Both live in `PackFile.Open` / `DetectFileTableSize`. Neither is patched in the submodule; if a
-future version fixes them, the workarounds in `FlatPad.Core/Game/PackageUnpacker.cs` become dead
+future version fixes them, the workarounds in `EvoMods.Core/Game/PackageUnpacker.cs` become dead
 weight and can go.
 
 - **No bounds check before seeking to the file table.** `fs.Position = fs.Length - tableSize` is set

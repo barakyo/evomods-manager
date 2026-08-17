@@ -1,7 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\FlatPad.Core\FlatPad.Core.csproj" />
+    <ProjectReference Include="..\EvoMods.Core\EvoMods.Core.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

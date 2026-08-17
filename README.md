@@ -189,12 +189,12 @@ comparison is the check that matters, and it is unaffected: all 1530 bytes still
 
 |                         |                                                                                                                                       |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `FlatPad.Core/Protobuf` | Lossless raw-protobuf tree. Re-emits a node's original bytes unless it was modified, so an untouched file round-trips byte-identical. |
-| `FlatPad.Core/Refs`     | Reference extraction, the `content\…` closure crawl, and copy-with-repath.                                                            |
-| `FlatPad.Core/Scene`    | Reading and reshaping the geometry a track scene is made of.                                                                          |
-| `FlatPad.Core/Tables`   | The `system\*.table` registry editor.                                                                                                 |
-| `FlatPad.Core/Game`     | Finding the install, switching it between packed and unpacked, reading stock files back out of the archive, and unpacking a standalone `.kspkg`. |
-| `FlatPad.Core/FlatPad`  | The Flat Pad recipe itself: build, install, uninstall, verify, repair.                                                                |
+| `EvoMods.Core/Protobuf` | Lossless raw-protobuf tree. Re-emits a node's original bytes unless it was modified, so an untouched file round-trips byte-identical. |
+| `EvoMods.Core/Refs`     | Reference extraction, the `content\…` closure crawl, and copy-with-repath.                                                            |
+| `EvoMods.Core/Scene`    | Reading and reshaping the geometry a track scene is made of.                                                                          |
+| `EvoMods.Core/Tables`   | The `system\*.table` registry editor.                                                                                                 |
+| `EvoMods.Core/Game`     | Finding the install, switching it between packed and unpacked, reading stock files back out of the archive, and unpacking a standalone `.kspkg`. |
+| `EvoMods.Core/FlatPad`  | The Flat Pad recipe itself: build, install, uninstall, verify, repair.                                                                |
 | `FlatPad.App`           | The WinForms GUI — a thin shell, no logic of its own.                                                                                 |
 | `FlatPad.Cli`           | Dev entry point. Not shipped.                                                                                                         |
 

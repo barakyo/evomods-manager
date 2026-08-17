@@ -1,7 +1,7 @@
 using System.Diagnostics;
 
-using FlatPad.Core.FlatPad;
-using FlatPad.Core.Game;
+using EvoMods.Core.FlatPad;
+using EvoMods.Core.Game;
 
 namespace FlatPad.App;
 
@@ -9,7 +9,7 @@ namespace FlatPad.App;
 /// The whole UI: pick the game, see what state it is in, and change that state.
 /// </summary>
 /// <remarks>
-/// Deliberately a thin shell. Everything it calls lives in <c>FlatPad.Core</c> and is covered by
+/// Deliberately a thin shell. Everything it calls lives in <c>EvoMods.Core</c> and is covered by
 /// tests and by a byte-for-byte comparison against the reference implementation, so there is no
 /// logic here worth hiding behind a button.
 ///

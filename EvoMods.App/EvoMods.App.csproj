@@ -41,7 +41,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
     <PackageReference Include="Velopack" Version="1.2.0" />
-    <ProjectReference Include="..\FlatPad.Core\FlatPad.Core.csproj" />
+    <ProjectReference Include="..\EvoMods.Core\EvoMods.Core.csproj" />
   </ItemGroup>
 
 </Project>

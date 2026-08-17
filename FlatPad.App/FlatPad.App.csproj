@@ -33,7 +33,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FlatPad.Core\FlatPad.Core.csproj" />
+    <ProjectReference Include="..\EvoMods.Core\EvoMods.Core.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,4 +1,4 @@
-using FlatPad.Core.Game;
+using EvoMods.Core.Game;
 
 namespace FlatPad.App;
 

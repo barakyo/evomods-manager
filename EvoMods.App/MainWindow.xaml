@@ -22,7 +22,7 @@
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
         </StackPanel>
 
-        <!-- Gate line 2: proves the FlatPad.Core reference resolves at runtime, not just at
+        <!-- Gate line 2: proves the EvoMods.Core reference resolves at runtime, not just at
              compile time, and doubles as the first genuinely useful thing the app does. -->
         <StackPanel Grid.Row="1" Spacing="6">
             <TextBlock Text="Game" Style="{StaticResource BodyStrongTextBlockStyle}" />
