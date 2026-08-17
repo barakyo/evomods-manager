@@ -6,6 +6,10 @@ publish/
 out/
 *.user
 
+# Velopack output. Same hazard, larger: a full .nupkg, a portable .zip and a Setup.exe per version,
+# ~90 MB each, so a couple of test versions is already a third of a gigabyte.
+releases/
+
 # Test / coverage
 TestResults/
 *.coverage
