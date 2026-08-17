@@ -7,9 +7,6 @@ using Microsoft.UI.Xaml.Controls;
 
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
-using Windows.Storage.Pickers;
-
-using WinRT.Interop;
 
 namespace EvoMods.App.Pages;
 
@@ -246,16 +243,42 @@ public sealed partial class GamePage : Page
 
     private async void OnUnpackPackage(object sender, RoutedEventArgs e)
     {
-        var picker = new FileOpenPicker();
+        string? path;
+        try
+        {
+            path = await PickPackage();
+        }
+        catch (Exception ex)
+        {
+            // An async void handler that throws takes the whole app down, and a picker has plenty of
+            // ways to fail on an unpackaged app. Report it on the page instead.
+            Failed("Choose a package", ex);
+            return;
+        }
+
+        if (path is not null)
+            await UnpackPackage(path);
+    }
+
+    /// <summary>Ask for a <c>.kspkg</c>, or null if the user backed out.</summary>
+    /// <remarks>
+    /// ⚠️ This is the Windows App SDK picker, NOT <c>Windows.Storage.Pickers.FileOpenPicker</c>. The
+    /// UWP one hangs here: called from an unpackaged app it never returns and never throws, and no
+    /// dialog window is created anywhere on the desktop — so the button simply does nothing and there
+    /// is not even an exception to report. Calling <c>InitializeWithWindow</c> on it, which is the
+    /// usual fix, makes no difference. The SDK picker takes a window id instead of needing to be
+    /// initialised, and is the one meant for desktop apps.
+    /// </remarks>
+    private static async Task<string?> PickPackage()
+    {
+        if (App.Window is not { } window)
+            throw new InvalidOperationException("no window to parent the file picker to");
+
+        var picker = new Microsoft.Windows.Storage.Pickers.FileOpenPicker(window.AppWindow.Id);
         picker.FileTypeFilter.Add(".kspkg");
 
-        // Unpackaged apps must hand the picker a real window, or it throws on show.
-        if (App.Window is { } window)
-            InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(window));
-
-        StorageFile? file = await picker.PickSingleFileAsync();
-        if (file is not null)
-            await UnpackPackage(file.Path);
+        Microsoft.Windows.Storage.Pickers.PickFileResult? file = await picker.PickSingleFileAsync();
+        return file?.Path;
     }
 
     /// <summary>
