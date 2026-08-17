@@ -1,3 +1,4 @@
+using EvoMods.Core.FlatPad;
 using EvoMods.Core.Game;
 using EvoMods.Core.Protobuf;
 using EvoMods.Core.Refs;
@@ -51,6 +52,183 @@ public sealed class FilterInstaller(string gameRoot, Action<string> log, IStockR
             ? "  nothing to do — they are hidden already"
             : $"  post_processing.table: {changed} row(s) hidden again");
         return changed;
+    }
+
+    /// <summary>Write a bundle's filters into the game and register them. Returns how many.</summary>
+    /// <remarks>
+    /// Idempotent by construction: our own rows are dropped and re-added rather than detected, so a
+    /// second run leaves one row per filter and a run after a game patch simply puts back what the
+    /// patch removed. Files are written only after the whole plan resolves, so a missing dependency
+    /// leaves the install exactly as it was.
+    /// </remarks>
+    public int Install(IFilterBundle bundle, IEnumerable<FilterEntry>? only = null)
+    {
+        List<FilterEntry> entries = [.. only ?? bundle.Filters];
+        if (entries.Count == 0)
+            return 0;
+
+        HashSet<string> shipped = ShippedNames();
+        foreach (FilterEntry entry in entries.Where(e => shipped.Contains(e.Name)))
+        {
+            throw new InstallException(
+                $"'{entry.Name}' is a name the game already ships. Registering a second row under it " +
+                "would leave two filters the menu cannot tell apart.");
+        }
+
+        log($"Installing {entries.Count} filter(s) from {bundle.Describe}:");
+
+        var game = new GameAssets(gameRoot, stock);
+        FilterPlan plan = FilterPlanner.Build(bundle, entries, game);
+
+        foreach ((string reference, byte[] bytes) in plan.Writes)
+        {
+            string real = Rp(reference);
+            Directory.CreateDirectory(Path.GetDirectoryName(real)!);
+            File.WriteAllBytes(real, bytes);
+        }
+
+        log($"  files: {plan.Writes.Count} written, {plan.Resolved.Count} reference(s) already present");
+
+        string table = Rp(FilterSpec.PpTable);
+        List<PbNode> tree = PbTree.ParseTree(File.ReadAllBytes(table));
+        var ours = entries.Select(e => e.Name).ToHashSet(StringComparer.Ordinal);
+
+        // Never a snapshot restore. Load what is there, drop only rows carrying our own names, and
+        // put them back — so another tool's rows, and anything a game update added, survive intact.
+        int replaced = FilterTable.RemoveRows(tree, r => ours.Contains(r.Name) && !shipped.Contains(r.Name));
+
+        (_, List<FilterRow> rows) = FilterTable.Read(tree);
+        FilterRow template = FilterTable.Template(rows, ours);
+        foreach (FilterEntry entry in entries)
+            FilterTable.AppendRow(tree, template, entry.Name, entry.InstallRef);
+
+        File.WriteAllBytes(table, PbTree.EncodeTree(tree));
+        log($"  post_processing.table: {entries.Count} registered" +
+            (replaced > 0 ? $", replacing {replaced} already there" : ""));
+
+        return entries.Count;
+    }
+
+    /// <summary>Drop a bundle's rows and delete its folders. Returns how many rows went.</summary>
+    /// <remarks>
+    /// A hand-written inverse, not a restore, for the same reason the Flat Pad uninstall is one.
+    /// Where it is not certain a file is ours, it stays: an orphaned 203-byte curve is harmless, and
+    /// deleting something we cannot prove we planted is the mistake this project already learned not
+    /// to make.
+    /// </remarks>
+    public int Uninstall(IFilterBundle bundle, IEnumerable<FilterEntry>? only = null)
+    {
+        List<FilterEntry> entries = [.. only ?? bundle.Filters];
+        if (entries.Count == 0)
+            return 0;
+
+        log($"Removing {entries.Count} filter(s):");
+
+        HashSet<string> shipped = ShippedNames();
+        HashSet<string> stockFolders = StockFolders(shipped);
+        var ourFolders = entries.Select(e => e.Folder).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Read what they point at before deleting anything, so what is left behind can be named.
+        var outside = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (FilterEntry entry in entries)
+        {
+            string real = Rp(entry.InstallRef);
+            if (!File.Exists(real))
+                continue;
+            foreach (string curve in FilterPlanner.CurveRefs(File.ReadAllBytes(real)))
+            {
+                string folder = curve.Split('/').SkipLast(1).LastOrDefault() ?? "";
+                if (!ourFolders.Contains(folder))
+                    outside.Add(curve);
+            }
+        }
+
+        string table = Rp(FilterSpec.PpTable);
+        int removed = 0;
+        if (File.Exists(table))
+        {
+            List<PbNode> tree = PbTree.ParseTree(File.ReadAllBytes(table));
+            var ours = entries.Select(e => e.Name).ToHashSet(StringComparer.Ordinal);
+            removed = FilterTable.RemoveRows(tree, r => ours.Contains(r.Name) && !shipped.Contains(r.Name));
+            if (removed > 0)
+                File.WriteAllBytes(table, PbTree.EncodeTree(tree));
+        }
+
+        log($"  post_processing.table: {removed} row(s) dropped");
+
+        int deleted = 0;
+        foreach (FilterEntry entry in entries)
+        {
+            if (stockFolders.Contains(entry.Folder))
+            {
+                log($"  left {entry.Folder} alone — the game ships a filter out of it");
+                continue;
+            }
+
+            string dir = Rp($"{FilterSpec.PpDir}/{entry.Folder}");
+            if (!Directory.Exists(dir))
+                continue;
+            Directory.Delete(dir, recursive: true);
+            deleted++;
+        }
+
+        log($"  files: {deleted} folder(s) deleted");
+        if (outside.Count > 0)
+            log($"  left {outside.Count} referenced file(s) outside those folders, which may not be ours");
+
+        return removed;
+    }
+
+    /// <summary>Names the game itself registers — from the archive, or the shipped list.</summary>
+    private HashSet<string> ShippedNames()
+    {
+        IStockRegistry registry = stock ?? ArchiveStockRegistry.ForGame(gameRoot);
+        if (registry.Available)
+        {
+            try
+            {
+                if (registry.Read(FilterSpec.PpTable) is { } bytes)
+                {
+                    var names = FilterTable.Read(bytes).Select(r => r.Name).ToHashSet(StringComparer.Ordinal);
+                    if (names.Count > 0)
+                        return names;
+                }
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException
+                                           or ProtobufException or InvalidDataException)
+            {
+                // Fall through to the shipped list.
+            }
+        }
+
+        return [.. FilterSpec.Shipped];
+    }
+
+    /// <summary>
+    /// Folders a stock row points into, read off the live table so this works with no archive.
+    /// </summary>
+    private HashSet<string> StockFolders(HashSet<string> shipped)
+    {
+        var folders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            foreach (FilterRow row in FilterTable.Read(File.ReadAllBytes(Rp(FilterSpec.PpTable))))
+            {
+                if (!shipped.Contains(row.Name))
+                    continue;
+                string canon = RefPath.Canon(row.Path);
+                if (canon.Split('/').SkipLast(1).LastOrDefault() is { Length: > 0 } folder)
+                    folders.Add(folder);
+            }
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException
+                                       or ProtobufException or InvalidDataException)
+        {
+            // No table to read means nothing to protect from a folder delete that will also find
+            // nothing. The per-entry Directory.Exists check below is the real guard.
+        }
+
+        return folders;
     }
 
     private int SetVisibility(IEnumerable<string> names, bool visible)

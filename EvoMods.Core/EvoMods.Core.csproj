@@ -4,6 +4,15 @@
     <ProjectReference Include="..\external\ACEvo.Package\ACEvo.Package\ACEvo.Package.csproj" />
   </ItemGroup>
 
+  <!-- The filters the app installs, 5.5 KB of them, carried in the assembly so installing one needs
+       no download and no file to drop. The folder tree under Assets\ MIRRORS the install layout on
+       purpose: it makes looking an asset up a pure string transform with no hand-maintained mapping,
+       and a hand-maintained mapping is precisely what the reference implementation got wrong. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Filters\Assets\**\*.postprocessing;Filters\Assets\**\*.curve;Filters\Assets\**\*.curve4"
+                      LogicalName="ppfilters/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
