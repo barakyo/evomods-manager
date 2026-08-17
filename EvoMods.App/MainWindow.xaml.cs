@@ -34,6 +34,7 @@ public sealed partial class MainWindow : Window
             "game" => typeof(GamePage),
             "flatpad" => typeof(FlatPadPage),
             "filters" => typeof(FiltersPage),
+            "camera" => typeof(CameraPage),
             _ => typeof(HomePage),
         });
     }

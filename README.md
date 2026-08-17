@@ -218,6 +218,38 @@ never recovered, and two of its fields are still unidentified. Nothing here writ
 nothing restores one: registration is edited by dropping our own rows and re-adding them, so another
 tool's rows and anything a game update added are left alone.
 
+## Chase camera
+
+Tuning for video capture, under **Camera** in the app. The settings are read at startup, so how the
+car drives and how the camera looks are fully separate: drive a clean lap on normal settings, exit,
+set a cinematic camera, relaunch and record the replay. An undriveable camera is an acceptable one.
+
+⚠️ There are **two** `camerasettings.camerasettings` files and only one is read. The copy under the
+game's `system\` has no effect while a user file exists — measured, by cranking a value to 200 in the
+game file and seeing nothing change, then making the same edit in
+`%USERPROFILE%\Saved Games\ACE\` and seeing it honoured. `%USERPROFILE%\Documents\ACE\` also exists,
+looks plausible, and is stale.
+
+Two settings were measured as dramatic, and both are chase-camera only, so they can go to any
+extreme without affecting how the car drives:
+
+- **Chase lag** (stock 4.5) — first-order lag toward the camera's target orientation; lower is
+  laggier. At 0.05 the camera barely follows the car through corners.
+- **Horizon lock** (stock 0.4) — at 0 the camera sits low and level behind the car, at 1 it sits high
+  and looks down. Dramatic on pitched or banked terrain, and **invisible on flat ground**, which is
+  why testing it on the flat pad reads as broken.
+
+The rest change the view you actually drive from and are grouped separately. `enableShake`,
+`g_forces_shake`, `gForceLag` and `worldAligned` are **not** offered: they were tested to absurd
+values on build 0.8.1 and did nothing at all, and a control that does nothing is worse than none.
+
+⚠️ Do not open the in-game camera settings screen after saving — the game rewrites the file and
+discards the values.
+
+The file is edited in place, so fields this tool does not know about survive. That is a deliberate
+difference from the reference PowerShell script, which rebuilds the file from the six settings it
+understands and silently drops the rest.
+
 ## Layout
 
 |                         |                                                                                                                                       |
@@ -229,6 +261,7 @@ tool's rows and anything a game update added are left alone.
 | `EvoMods.Core/Game`     | Finding the install, switching it between packed and unpacked, reading stock files back out of the archive, and unpacking a standalone `.kspkg`. |
 | `EvoMods.Core/FlatPad`  | The Flat Pad recipe itself: build, install, uninstall, verify, repair.                                                                |
 | `EvoMods.Core/Filters`  | Post-processing filters: reading `post_processing.table`, showing the ones the game hides, and installing the filters carried in `Filters/Assets`. |
+| `EvoMods.Core/Camera`   | The camera settings the game actually honours, edited in place so unknown fields survive.                                             |
 | `EvoMods.App`           | The WinUI 3 GUI — a shell and a page per feature, no logic of its own.                                                                |
 | `FlatPad.App`           | The WinForms GUI — a thin shell, no logic of its own. Kept until the WinUI app reaches parity on unpack and Flat Pad.                 |
 | `FlatPad.Cli`           | Dev entry point. Not shipped.                                                                                                         |

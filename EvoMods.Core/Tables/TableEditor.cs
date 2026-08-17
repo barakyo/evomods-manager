@@ -122,23 +122,28 @@ public static class TableEditor
     /// </remarks>
     public static void InsertField(PbNode message, PbNode field)
     {
-        List<PbNode> children = message.Message
-            ?? throw new InvalidDataException($"[{message.Number}] holds no message to insert into");
+        InsertField(
+            message.Message
+                ?? throw new InvalidDataException($"[{message.Number}] holds no message to insert into"),
+            field);
+        message.Dirty = true;
+    }
 
-        for (int i = 1; i < children.Count; i++)
+    /// <summary>Insert into a bare field list — a parsed file's top level, which has no owning node.</summary>
+    public static void InsertField(List<PbNode> fields, PbNode field)
+    {
+        for (int i = 1; i < fields.Count; i++)
         {
-            if (children[i].Number < children[i - 1].Number)
+            if (fields[i].Number < fields[i - 1].Number)
             {
                 throw new InvalidDataException(
-                    $"[{message.Number}] has fields out of numeric order " +
-                    $"({children[i - 1].Number} then {children[i].Number}) — refusing to guess " +
-                    "where a new one belongs");
+                    $"fields are out of numeric order ({fields[i - 1].Number} then {fields[i].Number})" +
+                    " — refusing to guess where a new one belongs");
             }
         }
 
-        int at = children.FindIndex(n => n.Number > field.Number);
-        children.Insert(at < 0 ? children.Count : at, field);
-        message.Dirty = true;
+        int at = fields.FindIndex(n => n.Number > field.Number);
+        fields.Insert(at < 0 ? fields.Count : at, field);
     }
 
     /// <summary>Drop every field with this number from a message node. Returns how many went.</summary>
