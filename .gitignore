@@ -10,6 +10,11 @@ out/
 # ~90 MB each, so a couple of test versions is already a third of a gigabyte.
 releases/
 
+# Capture scratch for READMEs and posts. Mostly gameplay video, which is the worst thing to put in
+# git: 21 MB of it here already, it never diffs, and every clone pays for it forever. Images that
+# a doc actually links to should live somewhere a doc can link to.
+screenshots/
+
 # Test / coverage
 TestResults/
 *.coverage
