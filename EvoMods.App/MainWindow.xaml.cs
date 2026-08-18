@@ -19,11 +19,56 @@ namespace EvoMods.App;
 /// </remarks>
 public sealed partial class MainWindow : Window
 {
+    /// <summary>Comfortable size in DIPs, sized to the widest screen rather than to the display.</summary>
+    /// <remarks>
+    /// The Camera page is the constraint: a 210 label, a 300 slider, a 96 readout and the gaps
+    /// between them, plus page padding and the 190 pane. Everything else fits inside that.
+    /// </remarks>
+    private const int PreferredWidth = 1040;
+    private const int PreferredHeight = 760;
+
+    // DllImport rather than LibraryImport: the source-generated form requires AllowUnsafeBlocks,
+    // which is a lot of blast radius to take on for one call that returns a number.
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetDpiForWindow(nint hwnd);
+
     public MainWindow()
     {
         InitializeComponent();
         Title = "EvoMods Manager";
         BrandTitleBar();
+        RightSize();
+    }
+
+    /// <summary>Open at a sensible size, centred, rather than at whatever WinUI picks.</summary>
+    /// <remarks>
+    /// ⚠️ <see cref="AppWindow.Resize"/> takes PHYSICAL pixels, not DIPs. Passing a comfortable
+    /// number straight in gives a window that is right on a 100% display and progressively tinier as
+    /// scaling goes up — the opposite of what it looks like it does. Hence the DPI scale.
+    /// </remarks>
+    private void RightSize()
+    {
+        nint hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        double scale = GetDpiForWindow(hwnd) / 96.0;
+        if (scale <= 0)
+            scale = 1;
+
+        var size = new Windows.Graphics.SizeInt32(
+            (int)(PreferredWidth * scale), (int)(PreferredHeight * scale));
+        AppWindow.Resize(size);
+
+        // Keep it from being dragged smaller than its own content.
+        if (AppWindow.Presenter is OverlappedPresenter presenter)
+        {
+            presenter.PreferredMinimumWidth = (int)(880 * scale);
+            presenter.PreferredMinimumHeight = (int)(560 * scale);
+        }
+
+        // Centre on the work area, so it does not land under the taskbar on a short display.
+        DisplayArea display = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Nearest);
+        AppWindow.Move(new Windows.Graphics.PointInt32(
+            display.WorkArea.X + ((display.WorkArea.Width - size.Width) / 2),
+            display.WorkArea.Y + ((display.WorkArea.Height - size.Height) / 2)));
     }
 
     /// <summary>Paint the caption bar in the brand's own dark, rather than the system's.</summary>
