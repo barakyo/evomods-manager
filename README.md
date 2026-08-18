@@ -1,201 +1,62 @@
-# Flat Pad Installer
+# EvoMods Manager
 
-A one-click installer for unpacking Assetto Corsa EVO and installing the **Flat Pad map**.
-Flat Pad is a 1.5 km dead-flat, wall-free, scenery-free test pad for
-_Assetto Corsa EVO_ that spawns your car ready to drive. Built for physics testing, where driving
-800 m across a real circuit before every run gets old fast.
+A Windows app for modding _Assetto Corsa EVO_: unpack the game, install the Flat Pad test track,
+unlock the post-processing filters the game hides, install more, and tune the chase camera for video
+capture.
 
-## How it works
+| | |
+| --- | --- |
+| **Game content** | Unpack the game so mods load at all, revert it, or take any `.kspkg` apart. |
+| **Flat Pad** | A 1.5 km dead-flat, wall-free test track, derived on your machine from your own game files. |
+| **Filters** | Show the nine filters EVO ships hidden; install five built for video capture. |
+| **Camera** | Chase-camera tuning, with the settle time shown next to every value. |
 
-There are essentially 3 steps to installing a new map:
+It updates itself from GitHub Releases. Download the latest `EvoMods.Manager-win-Setup.exe` from
+[Releases](https://github.com/barakyo/evomods-manager/releases); after that it offers new versions on
+its own.
 
-1. Unpack the game
-2. Add the map
-3. Update the track table
+## Game content
 
-### Step 1: Unpacking
+EVO ships a `content.kspkg`. When that archive is present the game reads everything from it and
+**ignores loose folders entirely**, so nothing can be modded until it is unpacked. Tracks in
+particular are not loaded from `Saved Games\ACE\mods\`, which is why this is the first screen.
 
-Assetto Corsa EVO ships with a `content.kspkg`. Essentially, when the game loads up, it looks for
-this file and reads all of the game's content from the file. If the file is not there, it looks for
-content in the game's `content/`. Step 1 of installing a new track, first requires unpacking the game.
+Unpacking builds on [Nenkai's ACEvo.Package](https://github.com/Nenkai/ACEvo.Package) and roughly
+**doubles the install**: the archive is kept, renamed `content.kspkg.bak`, and its ~68 GB of contents
+written out alongside. That figure is computed from your archive rather than hardcoded, and shown
+before anything is touched. **Nothing is renamed until every file is out**, so cancelling or crashing
+halfway leaves the game exactly as playable as it was, and re-running continues.
 
-To unpack the game, this script builds on top of [Nenkai's ACEvo.Package](https://github.com/Nenkai/ACEvo.Package).
-This portion mainly provides a GUI to make running the command a little more user friendly.
+⚠️ While unpacked, do **not** use Steam's _Verify integrity of game files_ — it re-downloads the whole
+archive. A game update also restores packed mode; unpacking again fixes it.
 
-Unpacking roughly **doubles the install**: the archive is kept (renamed `content.kspkg.bak`) and its
-~70 GB of contents are written out alongside. The tool computes that figure from your archive rather
-than hardcoding it, shows it before touching anything, and makes unpacking an explicit confirmed
-step. **Nothing is renamed until every file is out**, so cancelling or crashing halfway leaves the
-game exactly as playable as it was.
+Reverting puts a renamed archive back. When several are present it asks which rather than guessing: a
+game update downloads a fresh one, so installs accumulate them, and restoring an older build's
+archive under a newer game is the failure worth a dialog.
 
-**Note:** While unpacked, do **not** use Steam's _Verify integrity of game files_ — it re-downloads the whole
-archive. A game update also restores packed mode; re-running the tool fixes that.
+**Unpack a `.kspkg`** is separate from all of that. It points at any package — a car mod, or the
+game's own archive — and writes its contents into a folder beside it. Nothing about the install
+changes: no archive is renamed, no registry touched. Before writing it reports the file count, the
+total size, and the folder every file shares — `content\cars\nissan_skyline_r34_gtr\`, so you can see
+which car you have. Cancelling is checked between files, never during one, so everything on disk when
+you stop is complete rather than half-written. It is the one action that needs no game folder at all.
 
-### Step 2: Add the map
+## Flat Pad
 
-The Flat Pad map was created by taking a clone of sebring and stripping away everything until the only
-thing left was just the track surface. The second part of this script does exactly that.
+A clone of Sebring with everything stripped away but the track surface, built for physics testing —
+where driving 800 m across a real circuit before every run gets old fast.
 
-### Step 3: Update the track table
+The track is **derived on your machine from your own copy of the game**; nothing is downloaded. Adding
+files is not enough on its own: a track only appears in the menus once it is registered in two
+`system\*.table` registries.
 
-Unfortunately adding the map to the `content/` folder is not enough. A track only appears in the menus
-once it is registered in two `system\*.table` registries.
-
-Base-game content is left byte-identical to what Kunos ships. Registering reads the **live**
-registry and strips out this tool's own entries before adding them back, so re-running can never
-stack duplicates. It deliberately does not restore a snapshot taken on a previous run: a snapshot
-from before a game update would silently revert whatever that update added, which once cost a
-base-game track its entry outright.
-
-## Unpacking a single package
-
-Not one of the three steps above, and nothing to do with installing a map. **Unpack a .kspkg…**
-points at any package — a car mod from `Saved Games\ACE\mods\`, or the game's own archive — and
-writes its contents into a folder you choose. You can drag a `.kspkg` onto the window instead. It is
-the one action that needs no game folder at all: taking a mod apart to see how it is built should not
-require owning the game on that machine.
-
-Nothing about the install changes. No archive is renamed, no registry is touched, and the package is
-left exactly where it was. Before writing anything it shows the file count, the total size, the folder
-every file shares — `content\cars\nissan_skyline_r34_gtr\`, so you can see which car you have — and
-the free space where it is about to land. Point it at your own `content.kspkg` and it says so,
-because copying the archive is _not_ the same as unpacking the game and the two are easy to confuse.
-
-Cancelling is checked between files, never during one, so every file on disk when you stop is
-complete rather than half-written.
-
-## Building
-
-Needs the [.NET 10 SDK](https://dotnet.microsoft.com/download), and the submodule:
-
-```
-git submodule update --init
-dotnet build FlatPadInstaller.slnx
-dotnet test  FlatPadInstaller.slnx
-```
-
-### Releasing EvoMods Manager
-
-```
-.\build\pack.ps1    -Version 0.3.0             # build an installer, locally
-.\build\release.ps1 -Version 0.3.0             # ... and upload it as a DRAFT
-.\build\release.ps1 -Version 0.3.0 -Publish    # ... and publish it
-```
-
-Packing and publishing are separate commands on purpose. Packing is safe and repeatable; publishing
-is neither, because every installed copy watches that feed. Uploads are drafts unless `-Publish` is
-passed, so a release can be looked at before anyone is offered it.
-
-`release.ps1` needs `build\secrets.ps1` — gitignored, copied from `build\secrets.example.ps1` —
-holding a fine-grained token scoped to this repo with **Contents: read and write**, which is all
-`vpk upload github` uses.
-
-Updates come from GitHub Releases and need no infrastructure beyond it. `vpk` writes a
-`releases.win.json` manifest carrying a SHA1, SHA256 and size per package; the client compares
-versions itself and refuses to apply anything whose hash does not match. ⚠️ That is integrity, not
-authenticity — the manifest sits beside the packages, so whoever can replace one can replace the
-other. Signing is what would change that; until then the GitHub account's 2FA is what holds the
-update channel shut.
-
-### The retired WinForms installer
-
-Up to **v1.1.0** this shipped as `FlatPadInstaller.exe`, a single ~49 MB WinForms build that did
-nothing but unpack the game and install Flat Pad. EvoMods Manager does all of that and more, so the
-project was removed once it reached parity. The old releases stay published — they still work, and
-nothing is served by breaking a download link somebody has.
-
-Its history is in the git log; `git log -- FlatPad.App` finds it.
-
-## Using the dev CLI
-
-The GUI is the product; this exists so the logic can be driven, and diffed against the reference
-implementation, without one.
-
-```
-dotnet run --project FlatPad.Cli -- status
-dotnet run --project FlatPad.Cli -- unpack
-dotnet run --project FlatPad.Cli -- install
-dotnet run --project FlatPad.Cli -- verify
-dotnet run --project FlatPad.Cli -- repair
-dotnet run --project FlatPad.Cli -- uninstall
-dotnet run --project FlatPad.Cli -- revert
-dotnet run --project FlatPad.Cli -- check-unpack
-
-# standalone packages — these need no game folder at all
-dotnet run --project FlatPad.Cli -- inspect-package --input "<file.kspkg>"
-dotnet run --project FlatPad.Cli -- unpack-package  --input "<file.kspkg>" --out "<dir>"
-```
-
-`--game <path>` is auto-detected from Steam if omitted. Every command is idempotent, and Ctrl+C
-cancels cleanly. `verify` is read-only, and reports a **count** for every check — a validator that
-finds nothing to check would otherwise print a cheerful `PASS`. `check-unpack` samples the loose
-files against the archive they came from, which is how you tell a finished unpack from one that
-quietly ran out of disk.
-
-### Show me exactly what you changed
-
-Registering a track means writing into `system\tracks.table` and `system\track_containers.table` —
-files the game owns and every track mod shares. Get that wrong and there is no error and no log
-line; the affected track is simply absent from the menus. This tool got it wrong twice, and neither
-time was visible.
-
-So `verify` also reads the two registries **as the game ships them**, straight out of your
-`content.kspkg`, and compares:
-
-```
-  registry vs stock (content.kspkg.bak): 20 catalog + 179 session entries in stock, 0 missing live
-```
-
-Anything present in stock, missing live, and whose track files are still on disk is a **failure**,
-whatever caused it. `repair` puts those entries back — cloned verbatim from the archive, so each
-keeps the id and menu index the game gave it, and nothing else in the registry is touched. In the
-GUI this is offered after a `Verify` that found damage, never as a standing button.
-
-Two things it will not do. It declines when several renamed-aside archives are present, because
-which one matches your build is a guess (`revert` refuses for the same reason). And an entry whose
-track folder is _not_ on disk is reported as "not installed here" rather than damage — that is what
-an archive from a different game version looks like, and there is nothing to fix.
-
-`--pr-runoff-spawn` from the Python is deliberately **not** ported: it moves a spawn on a _base-game_
-track, the one thing this tool exists to avoid. `uninstall` still reverts it if an older run left it
-behind.
-
-## Verification
-
-The Python script stays authoritative until the port is confirmed in-game. The two agree
-byte-for-byte, on the console output _and_ on the files produced:
-
-```
-uv run python ../tracks/install_flatpad.py --verify           > py.txt
-dotnet run --project FlatPad.Cli -- verify --game "<game>"    > cs.txt
-diff py.txt cs.txt
-
-# stronger: install with each, and hash everything they wrote
-( cd "<game>" && find content/tracks/flatpad -type f | sort | xargs sha256sum ) > tree.sha256
-```
-
-|                      |                                                                                                                                                                                                                                               |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Track build          | **Byte-identical** to the Python across all 1530 files, from a warm install and a cold start. Uninstall matches too.                                                                                                                          |
-| Verify               | Console output byte-identical, on a passing install _and_ on a deliberately broken one.                                                                                                                                                       |
-| Archive reading      | 201 files sampled from the real 67.5 GB archive extract byte-identical to disk, across its 115,896-file table. |
-| Unpack round trip    | Run end-to-end against a real 599 MB `.kspkg`: detect → free-space check → extract all 650 files → rename aside → detect unpacked → revert → detect packed. Output is **byte-identical to Nenkai's own CLI**.                                 |
-| Package unpack       | `unpack-package` on the same 599 MB car mod: 607 files / 532.1 MB out of 650 entries (43 are folders), SHA-256 **identical to Nenkai's own CLI** on every file and no extras. `inspect-package` reports those counts and the shared root without extracting. |
-| Package cancellation | Cancelled mid-unpack at three points — 30, 570 and 607 of 607 files. Every file on disk was byte-identical to a full extract; **none truncated**. A hard `Stop-Process` at the same point _does_ leave one 0-byte file, which is what the between-files check exists to avoid. |
-| Unpack at full scale | Run once for real through the GUI: **119,443 files / 68.5 GB**, then reinstall and verify. The whole round trip left all 1530 installed files **byte-identical** to the pre-run baseline.                                                     |
-| Registry repair      | Rehearsed against a real registry: a scratch copy of the live tables with a real base track's 5 entries deleted, repaired from the real 72.5 GB archive. All 5 came back **byte-identical** to the pristine file, and no other entry changed. |
-| Unit tests           | 134, covering the format layer, the closure crawl, the geometry edits, the archive state machine, progress throttling, registry integrity, the file-table parse and where an entry is allowed to be written. |
-
-**Console divergence from the Python.** The reference implementation is behind: the five bugs a
-real-world v0.8.1 run exposed were fixed here and never back-ported, and it cannot read a `.kspkg`
-at all, so it has no registry-integrity check. Today `diff py.txt cs.txt` on a healthy install shows
-four hunks, and the verdicts differ — the Python still reports the _base game's_ own dangling
-reference as a failure. Re-measure it rather than trusting a remembered number. The file-level
-comparison is the check that matters, and it is unaffected: all 1530 bytes still agree.
+Install stays available in every state, because it is also the repair action. A game update re-packs
+the game and restores stock content, and re-running install is the documented fix — so the label
+changes rather than the button greying out.
 
 ## Post-processing filters
 
-Two things, both in the WinUI app under **Filters**, and both reversible.
+Two things, both reversible.
 
 **Unlock the filters the game hides.** EVO registers nine filters without the flag that offers them
 in the video options — `TV 1`, `TV 3_1`, `TV 3_low`, `TV 4`, `TV 5`, `Natural 5`, `Natural 6`,
@@ -218,32 +79,26 @@ registers, appears in the list, is selectable, and the previously chosen one jus
   from a list someone maintains, so installing one filter on its own still brings what it needs.
 - **Registration does not survive a game patch or a Steam file verification.**
   `system/post_processing.table` lives in the game directory, so the files under `content/` survive
-  while the rows revert. The screen reports that state as *files present, not registered*; installing
+  while the rows revert. The screen reports that state as _files present, not registered_; installing
   again puts the rows back.
-
-Rows are only ever added by cloning an existing one and swapping two strings — the row schema was
-never recovered, and two of its fields are still unidentified. Nothing here writes a `.bak`, and
-nothing restores one: registration is edited by dropping our own rows and re-adding them, so another
-tool's rows and anything a game update added are left alone.
 
 ## Chase camera
 
-Tuning for video capture, under **Camera** in the app. The settings are read at startup, so how the
-car drives and how the camera looks are fully separate: drive a clean lap on normal settings, exit,
-set a cinematic camera, relaunch and record the replay. An undriveable camera is an acceptable one.
+Tuning for video capture. The settings are read at startup, so how the car drives and how the camera
+looks are fully separate: drive a clean lap on normal settings, exit, set a cinematic camera, relaunch
+and record the replay. An undriveable camera is an acceptable one.
 
 ⚠️ There are **two** `camerasettings.camerasettings` files and only one is read. The copy under the
 game's `system\` has no effect while a user file exists — measured, by cranking a value to 200 in the
-game file and seeing nothing change, then making the same edit in
-`%USERPROFILE%\Saved Games\ACE\` and seeing it honoured. `%USERPROFILE%\Documents\ACE\` also exists,
-looks plausible, and is stale.
+game file and seeing nothing change, then making the same edit in `%USERPROFILE%\Saved Games\ACE\`
+and seeing it honoured. `%USERPROFILE%\Documents\ACE\` also exists, looks plausible, and is stale.
 
-Two settings were measured as dramatic, and both are chase-camera only, so they can go to any
-extreme without affecting how the car drives:
+Two settings were measured as dramatic, and both are chase-camera only, so they can go to any extreme
+without affecting how the car drives:
 
 - **Chase lag** (stock 4.5) — first-order lag toward the camera's target orientation; lower is
-  laggier. Because it is first-order, the settle time is just `1 / value`, which is what the slider
-  shows alongside the number — `1.5` means nothing on its own, `~0.7 s` is a duration you can picture
+  laggier. Because it is first-order the settle time is just `1 / value`, which is what the slider
+  shows beside the number: `1.5` means nothing on its own, `~0.7 s` is a duration you can picture
   against a corner. It agrees with every settle time measured in game:
 
   | Chase lag | Settle | Feel |
@@ -253,6 +108,7 @@ extreme without affecting how the car drives:
   | 1.5 | ~0.7 s | lags visibly, recovers within a corner |
   | 3.0 | ~0.3 s | subtle lag |
   | 4.5 | ~0.2 s | stock |
+
 - **Horizon lock** (stock 0.4) — at 0 the camera sits low and level behind the car, at 1 it sits high
   and looks down. Dramatic on pitched or banked terrain, and **invisible on flat ground**, which is
   why testing it on the flat pad reads as broken.
@@ -268,20 +124,147 @@ The file is edited in place, so fields this tool does not know about survive. Th
 difference from the reference PowerShell script, which rebuilds the file from the six settings it
 understands and silently drops the rest.
 
+## How it avoids breaking your game
+
+Every feature here writes into files the game owns and other mods share — two `system\*.table` track
+registries, `post_processing.table`, the camera settings. Get that wrong and there is no error and no
+log line: the affected thing is simply absent, or silently inert. This tool got it wrong twice, and
+neither time was visible.
+
+**Nothing is ever restored from a snapshot.** Registering reads the **live** file, strips out this
+tool's own entries, and adds them back — so re-running cannot stack duplicates, and another tool's
+rows survive untouched. A snapshot taken on a previous run would silently revert whatever a game
+update added in the meantime, which once cost a base-game track its registration outright. Rows are
+only ever added by cloning an existing one and swapping the strings that need to change, because a
+field left unfilled is a crash and several of these schemas were never fully recovered.
+
+**Verify reads the registries as the game ships them**, straight out of your `content.kspkg`, and
+compares:
+
+```
+  registry vs stock (content.kspkg.bak): 20 catalog + 179 session entries in stock, 0 missing live
+```
+
+Anything present in stock, missing live, and whose track files are still on disk is a **failure**,
+whatever caused it. **Repair** puts those entries back — cloned verbatim from the archive, so each
+keeps the id and menu index the game gave it. It is offered after a Verify that found damage, never
+as a standing button, because knowing means opening a ~68 GB archive.
+
+Two things it will not do. It declines when several renamed-aside archives are present, because which
+one matches your build is a guess. And an entry whose track folder is _not_ on disk is reported as
+"not installed here" rather than damage — that is what an archive from a different game version looks
+like, and there is nothing to fix.
+
+## Building
+
+Needs the [.NET 10 SDK](https://dotnet.microsoft.com/download), and the submodule:
+
+```
+git submodule update --init
+dotnet build EvoMods.slnx
+dotnet test  EvoMods.slnx
+```
+
+### Releasing
+
+```
+.\build\pack.ps1    -Version 0.4.1             # build an installer, locally
+.\build\release.ps1 -Version 0.4.1             # ... and upload it as a DRAFT
+.\build\release.ps1 -Version 0.4.1 -Publish    # ... and publish it
+```
+
+Packing and publishing are separate commands on purpose. Packing is safe and repeatable; publishing
+is neither, because every installed copy watches that feed. Uploads are drafts unless `-Publish` is
+passed.
+
+`release.ps1` needs `build\secrets.ps1` — gitignored, copied from `build\secrets.example.ps1` —
+holding a fine-grained token scoped to this repo with **Contents: read and write**.
+
+⚠️ **Keep `releases/` between versions.** Velopack builds a delta by diffing against the previous
+package sitting in that folder; with an empty folder it can only produce a full ~91 MB package, and
+users download all of it.
+
+Updates need no infrastructure beyond GitHub Releases. `vpk` writes a `releases.win.json` manifest
+carrying a SHA1, SHA256 and size per package; the client compares versions itself and refuses to apply
+anything whose hash does not match. ⚠️ That is integrity, not authenticity — the manifest sits beside
+the packages, so whoever can replace one can replace the other. Signing is what would change that;
+until then the GitHub account's 2FA is what holds the update channel shut.
+
+### The dev CLI
+
+Not shipped. It exists so the logic can be driven, and diffed against the reference implementation,
+without a UI.
+
+```
+dotnet run --project FlatPad.Cli -- status
+dotnet run --project FlatPad.Cli -- unpack
+dotnet run --project FlatPad.Cli -- install
+dotnet run --project FlatPad.Cli -- verify
+dotnet run --project FlatPad.Cli -- repair
+dotnet run --project FlatPad.Cli -- uninstall
+dotnet run --project FlatPad.Cli -- revert
+dotnet run --project FlatPad.Cli -- check-unpack
+
+# standalone packages — these need no game folder at all
+dotnet run --project FlatPad.Cli -- inspect-package --input "<file.kspkg>"
+dotnet run --project FlatPad.Cli -- unpack-package  --input "<file.kspkg>" --out "<dir>"
+```
+
+`--game <path>` is auto-detected from Steam if omitted. Every command is idempotent, and Ctrl+C
+cancels cleanly. `verify` is read-only, and reports a **count** for every check — a validator that
+finds nothing to check would otherwise print a cheerful `PASS`. `check-unpack` samples the loose files
+against the archive they came from, which is how you tell a finished unpack from one that quietly ran
+out of disk.
+
+It covers Flat Pad and the archive only. Filters and camera are exercised by the test suite instead.
+
+### The retired WinForms installer
+
+Up to **v1.1.0** this shipped as `FlatPadInstaller.exe`, a single ~49 MB WinForms build that did
+nothing but unpack the game and install Flat Pad. EvoMods Manager does all of that and more, so the
+project was removed once it reached parity. The old releases stay published — they still work, and
+nothing is served by breaking a download link somebody has. `git log -- FlatPad.App` finds the
+history.
+
+## Verification
+
+The Python and PowerShell references stay authoritative until each port is confirmed in-game.
+
+| | |
+| --- | --- |
+| Track build | **Byte-identical** to the Python across all 1530 files, from a warm install and a cold start. Uninstall matches too. |
+| Verify | Console output byte-identical, on a passing install _and_ on a deliberately broken one. |
+| Archive reading | 201 files sampled from the real 67.5 GB archive extract byte-identical to disk, across its 115,896-file table. |
+| Unpack round trip | End-to-end against a real 599 MB `.kspkg`: detect → free-space check → extract all 650 files → rename aside → detect unpacked → revert → detect packed. Output **byte-identical to Nenkai's own CLI**. |
+| Package unpack | 607 files / 532.1 MB out of 650 entries (43 are folders), SHA-256 **identical to Nenkai's own CLI** on every file and no extras. |
+| Package cancellation | Cancelled mid-unpack at 30, 570 and 607 of 607 files. Every file on disk byte-identical to a full extract; **none truncated**. |
+| Unpack at full scale | Run once for real: **119,443 files / 68.5 GB**, then reinstall and verify. The round trip left all 1530 installed files **byte-identical** to the baseline. |
+| Registry repair | Rehearsed against a real registry: a scratch copy with a real base track's 5 entries deleted, repaired from the real 72.5 GB archive. All 5 came back **byte-identical**, and no other entry changed. |
+| Filter tables | The stock 1560-byte and a modified 3411-byte `post_processing.table` both round-trip byte-identical, and the nine rows stock ships hidden are exactly the nine the code names. |
+| Self-update | 0.3.0 installed by hand, then updated to 0.4.0 over the network from GitHub Releases and relaunched. |
+| Unit tests | **258**, covering the protobuf layer, the closure crawl, the geometry edits, the archive state machine, progress throttling, registry integrity, the filter table and install plan, and the camera settings file. |
+
+**Console divergence from the Python.** The reference implementation is behind: the five bugs a
+real-world v0.8.1 run exposed were fixed here and never back-ported, and it cannot read a `.kspkg` at
+all, so it has no registry-integrity check. `diff py.txt cs.txt` on a healthy install shows four
+hunks, and the verdicts differ — the Python still reports the _base game's_ own dangling reference as
+a failure. Re-measure rather than trusting a remembered number. The file-level comparison is the check
+that matters, and it is unaffected: all 1530 bytes still agree.
+
 ## Layout
 
-|                         |                                                                                                                                       |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| | |
+| --- | --- |
 | `EvoMods.Core/Protobuf` | Lossless raw-protobuf tree. Re-emits a node's original bytes unless it was modified, so an untouched file round-trips byte-identical. |
-| `EvoMods.Core/Refs`     | Reference extraction, the `content\…` closure crawl, and copy-with-repath.                                                            |
-| `EvoMods.Core/Scene`    | Reading and reshaping the geometry a track scene is made of.                                                                          |
-| `EvoMods.Core/Tables`   | The `system\*.table` registry editor.                                                                                                 |
-| `EvoMods.Core/Game`     | Finding the install, switching it between packed and unpacked, reading stock files back out of the archive, and unpacking a standalone `.kspkg`. |
-| `EvoMods.Core/FlatPad`  | The Flat Pad recipe itself: build, install, uninstall, verify, repair.                                                                |
-| `EvoMods.Core/Filters`  | Post-processing filters: reading `post_processing.table`, showing the ones the game hides, and installing the filters carried in `Filters/Assets`. |
-| `EvoMods.Core/Camera`   | The camera settings the game actually honours, edited in place so unknown fields survive.                                             |
-| `EvoMods.App`           | The WinUI 3 GUI — a shell and a page per feature, no logic of its own.                                                                |
-| `FlatPad.Cli`           | Dev entry point. Not shipped.                                                                                                         |
+| `EvoMods.Core/Refs` | Reference extraction, the `content\…` closure crawl, and copy-with-repath. |
+| `EvoMods.Core/Scene` | Reading and reshaping the geometry a track scene is made of. |
+| `EvoMods.Core/Tables` | The `system\*.table` registry editor. |
+| `EvoMods.Core/Game` | Finding the install, switching it between packed and unpacked, reading stock files back out of the archive, and unpacking a standalone `.kspkg`. |
+| `EvoMods.Core/FlatPad` | The Flat Pad recipe: build, install, uninstall, verify, repair. |
+| `EvoMods.Core/Filters` | Post-processing filters: reading `post_processing.table`, showing the ones the game hides, and installing the filters carried in `Filters/Assets`. |
+| `EvoMods.Core/Camera` | The camera settings the game actually honours, edited in place so unknown fields survive. |
+| `EvoMods.App` | The WinUI 3 GUI — a shell and a page per feature, no logic of its own. |
+| `FlatPad.Cli` | Dev entry point. Not shipped. |
 
 ## Licence
 
