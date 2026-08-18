@@ -97,30 +97,14 @@ authenticity — the manifest sits beside the packages, so whoever can replace o
 other. Signing is what would change that; until then the GitHub account's 2FA is what holds the
 update channel shut.
 
-A portable single-file build of the OLD WinForms installer — one ~49 MB `.exe`, no runtime to install
-first:
+### The retired WinForms installer
 
-```
-dotnet publish FlatPad.App -c Release -o out          # -> out/FlatPadInstaller.exe
-```
+Up to **v1.1.0** this shipped as `FlatPadInstaller.exe`, a single ~49 MB WinForms build that did
+nothing but unpack the game and install Flat Pad. EvoMods Manager does all of that and more, so the
+project was removed once it reached parity. The old releases stay published — they still work, and
+nothing is served by breaking a download link somebody has.
 
-That is the whole build. The three `.pdb` files beside it are debug symbols and are not needed to
-run — the exe carries the .NET runtime and its native libraries inside itself, which is the 49 MB.
-
-To cut a release, add the version to the filename **from a terminal**, and upload that:
-
-```
-mv out/FlatPadInstaller.exe out/FlatPadInstaller-v1.1.0.exe
-sha256sum out/FlatPadInstaller-v1.1.0.exe
-```
-
-⚠️ Not from Explorer. It hides known extensions, so typing a name ending in `.exe` over a file whose
-`.exe` is already hidden produces `…exe.exe` — which on an unsigned download reads as the oldest
-malware disguise there is. This has happened once already.
-
-Two builds of the same commit are not byte-identical (.NET stamps a fresh build id), so publish the
-hash of the file you actually upload. The exe reports the commit it was built from in its file
-properties, which is the durable way to identify a build.
+Its history is in the git log; `git log -- FlatPad.App` finds it.
 
 ## Using the dev CLI
 
@@ -297,7 +281,6 @@ understands and silently drops the rest.
 | `EvoMods.Core/Filters`  | Post-processing filters: reading `post_processing.table`, showing the ones the game hides, and installing the filters carried in `Filters/Assets`. |
 | `EvoMods.Core/Camera`   | The camera settings the game actually honours, edited in place so unknown fields survive.                                             |
 | `EvoMods.App`           | The WinUI 3 GUI — a shell and a page per feature, no logic of its own.                                                                |
-| `FlatPad.App`           | The WinForms GUI — a thin shell, no logic of its own. Kept until the WinUI app reaches parity on unpack and Flat Pad.                 |
 | `FlatPad.Cli`           | Dev entry point. Not shipped.                                                                                                         |
 
 ## Licence
