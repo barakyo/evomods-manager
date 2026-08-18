@@ -10,6 +10,10 @@
     <UseWinUI>true</UseWinUI>
     <ApplicationManifest>app.manifest</ApplicationManifest>
 
+    <!-- The same avatar the social accounts use, so the taskbar, Alt-Tab and the Start menu entry
+         all carry the mark rather than the generic WinUI placeholder. -->
+    <ApplicationIcon>Assets\evomods.ico</ApplicationIcon>
+
     <!-- Required even though nothing here is packaged as MSIX. It is what runs MakePri, and
          without the app's own resources.pri WinUI cannot load the compiled XAML: the app builds,
          installs and updates perfectly, then dies at InitializeComponent with a bare E_FAIL. -->
@@ -40,6 +44,12 @@
     <Company>itsbarakyo</Company>
     <Description>Manages Assetto Corsa EVO mods: tracks, post-processing filters and camera settings.</Description>
   </PropertyGroup>
+
+  <!-- The brand mark and the two shipped fonts. Reached at run time through ms-appx:///Assets/…,
+       which resolves to the app folder, so they have to actually land there. -->
+  <ItemGroup>
+    <Content Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.4.0" />

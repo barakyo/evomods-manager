@@ -36,6 +36,21 @@ weight and can go.
 
 ---
 
+## Saira Condensed, Rajdhani — SIL Open Font License 1.1
+
+<https://fonts.google.com/specimen/Saira+Condensed> · <https://fonts.google.com/specimen/Rajdhani>
+
+Saira Condensed by Omnibus-Type; Rajdhani by Indian Type Foundry. Both are shipped inside the app,
+in `EvoMods.App/Assets/Fonts`, because neither is a Windows font and the alternative is a silent
+fallback that looks almost right. Saira Condensed sets headings, Rajdhani sets the camera readouts —
+the same jobs they do on evomods.gg.
+
+The OFL permits bundling in this way. Its one hard condition is that the fonts are not sold on their
+own, which is not a thing that could happen here. Running text stays on Segoe UI Variable rather than
+the site's Inter: it is close enough that shipping a second neutral grotesque would buy nothing.
+
+---
+
 ## Pure — Peter Boese
 
 <https://www.patreon.com/peterboese>

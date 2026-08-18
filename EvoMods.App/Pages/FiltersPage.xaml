@@ -39,7 +39,9 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Spacing="2">
-            <TextBlock Text="Post-processing filters" Style="{StaticResource TitleTextBlockStyle}" />
+            <TextBlock Text="Post-processing filters" Style="{StaticResource TitleTextBlockStyle}"
+                       FontFamily="{StaticResource BrandDisplayFont}" FontSize="34"
+                       CharacterSpacing="20" />
             <TextBlock x:Name="SourceText" Style="{StaticResource CaptionTextBlockStyle}"
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
         </StackPanel>

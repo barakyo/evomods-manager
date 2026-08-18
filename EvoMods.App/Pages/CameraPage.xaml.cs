@@ -61,11 +61,15 @@ public sealed partial class CameraPage : Page
 
     private UIElement Row(CameraField field)
     {
+        // Rajdhani, which is what the site uses for lap times and telemetry numerals. This is the one
+        // place in the app that is genuinely a readout rather than prose.
         var value = new TextBlock
         {
             MinWidth = 96,
             VerticalAlignment = VerticalAlignment.Center,
-            Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"],
+            FontSize = 17,
+            FontFamily = (Microsoft.UI.Xaml.Media.FontFamily)Application.Current.Resources["BrandNumeralFont"],
+            Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["BrandBlue"],
         };
 
         // The description changes as the slider moves, which is the point of it: a number like 1.5

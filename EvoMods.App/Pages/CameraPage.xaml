@@ -15,7 +15,9 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Spacing="2">
-            <TextBlock Text="Chase camera" Style="{StaticResource TitleTextBlockStyle}" />
+            <TextBlock Text="Chase camera" Style="{StaticResource TitleTextBlockStyle}"
+                       FontFamily="{StaticResource BrandDisplayFont}" FontSize="34"
+                       CharacterSpacing="20" />
             <TextBlock Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap"
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                        Text="Read at startup, so how the car drives and how the camera looks are fully separate: drive a clean lap on normal settings, exit, set a cinematic camera, relaunch and record the replay. An undriveable camera is an acceptable camera." />

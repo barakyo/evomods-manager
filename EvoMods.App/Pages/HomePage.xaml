@@ -15,7 +15,9 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Spacing="2">
-            <TextBlock Text="EvoMods Manager" Style="{StaticResource TitleTextBlockStyle}" />
+            <TextBlock Text="EvoMods Manager" Style="{StaticResource TitleTextBlockStyle}"
+                       FontFamily="{StaticResource BrandDisplayFont}" FontSize="34"
+                       CharacterSpacing="20" HorizontalAlignment="Left" />
             <TextBlock x:Name="VersionText" Style="{StaticResource CaptionTextBlockStyle}"
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
         </StackPanel>

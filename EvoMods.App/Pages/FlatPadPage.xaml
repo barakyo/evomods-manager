@@ -17,7 +17,9 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Spacing="2">
-            <TextBlock Text="Flat Pad" Style="{StaticResource TitleTextBlockStyle}" />
+            <TextBlock Text="Flat Pad" Style="{StaticResource TitleTextBlockStyle}"
+                       FontFamily="{StaticResource BrandDisplayFont}" FontSize="34"
+                       CharacterSpacing="20" />
             <TextBlock Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap"
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                        Text="A 1.5 km dead-flat, wall-free, scenery-free test pad that spawns your car ready to drive. Built from your own game files — nothing is downloaded." />

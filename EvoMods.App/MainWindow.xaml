@@ -14,6 +14,15 @@
                     IsPaneToggleButtonVisible="False"
                     Loaded="OnNavLoaded"
                     SelectionChanged="OnNavSelectionChanged">
+
+        <!-- The lockup rather than the avatar: the pane is 190 wide, which is room for the wordmark,
+             and the avatar alone would say "EM" to someone who does not already know what that is. -->
+        <NavigationView.PaneHeader>
+            <Image Source="ms-appx:///Assets/evomods-lockup.png"
+                   Width="150" Margin="14,10,14,18"
+                   HorizontalAlignment="Left" Stretch="Uniform" />
+        </NavigationView.PaneHeader>
+
         <NavigationView.MenuItems>
             <NavigationViewItem Content="Home" Tag="home">
                 <NavigationViewItem.Icon>
