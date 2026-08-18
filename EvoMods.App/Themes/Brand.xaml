@@ -59,16 +59,65 @@
             <SolidColorBrush x:Key="TextFillColorTertiaryBrush" Color="#6C7686" />
             <SolidColorBrush x:Key="TextControlForeground" Color="#EBEFF4" />
 
-            <!-- Red is the accent: buttons, sliders, progress, selection. -->
+            <!--
+                Red is the accent.
+
+                ⚠️ Overriding AccentFillColorDefaultBrush alone is NOT enough, and looks like it
+                should be. Controls do not read it directly: generic.xaml aliases the keys they do
+                read, e.g.
+
+                    <StaticResource x:Key="AccentButtonBackground"
+                                    ResourceKey="AccentFillColorDefaultBrush" />
+
+                and a StaticResource alias captures its value when that dictionary loads, which
+                happens before this file is merged. So the alias keeps pointing at WinUI's own brush
+                no matter what is put here later, and the leaf keys have to be set as well.
+
+                Compounding it: in the DARK theme WinUI defines AccentFillColorDefaultBrush as
+                SystemAccentColorLight2 — the light rung of the ramp, not the base — so an accent
+                button came out visibly lighter and pinker than the brand red even once the ramp was
+                branded. Light2 is therefore the exact brand red here, and the lighter tints move up
+                to Light3 where nothing structural depends on them.
+            -->
             <Color x:Key="SystemAccentColor">#EC1627</Color>
-            <Color x:Key="SystemAccentColorLight1">#F03D4B</Color>
-            <Color x:Key="SystemAccentColorLight2">#F4646F</Color>
+            <Color x:Key="SystemAccentColorLight1">#EC1627</Color>
+            <Color x:Key="SystemAccentColorLight2">#EC1627</Color>
+            <Color x:Key="SystemAccentColorLight3">#F4646F</Color>
             <Color x:Key="SystemAccentColorDark1">#C51120</Color>
+            <Color x:Key="SystemAccentColorDark2">#A50E1B</Color>
+            <Color x:Key="SystemAccentColorDark3">#7F0A14</Color>
             <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="#EC1627" />
             <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="#D91324" />
             <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="#C51120" />
-            <SolidColorBrush x:Key="AccentTextFillColorPrimaryBrush" Color="#F4646F" />
             <SolidColorBrush x:Key="AccentFillColorSelectedTextBackgroundBrush" Color="#EC1627" />
+
+            <!-- Accent TEXT stays lighter. #EC1627 on #0D0F15 is a fill colour, not a reading
+                 colour — it does not clear 4.5:1 as small text. -->
+            <SolidColorBrush x:Key="AccentTextFillColorPrimaryBrush" Color="#F4646F" />
+            <SolidColorBrush x:Key="AccentTextFillColorSecondaryBrush" Color="#F4646F" />
+
+            <!-- The leaf keys the controls genuinely read. -->
+            <SolidColorBrush x:Key="AccentButtonBackground" Color="#EC1627" />
+            <SolidColorBrush x:Key="AccentButtonBackgroundPointerOver" Color="#F02F3D" />
+            <SolidColorBrush x:Key="AccentButtonBackgroundPressed" Color="#C51120" />
+            <SolidColorBrush x:Key="AccentButtonBorderBrush" Color="#EC1627" />
+            <SolidColorBrush x:Key="AccentButtonBorderBrushPointerOver" Color="#F02F3D" />
+            <SolidColorBrush x:Key="AccentButtonBorderBrushPressed" Color="#C51120" />
+            <SolidColorBrush x:Key="AccentButtonForeground" Color="#FFF6F6" />
+            <SolidColorBrush x:Key="AccentButtonForegroundPointerOver" Color="#FFF6F6" />
+            <SolidColorBrush x:Key="AccentButtonForegroundPressed" Color="#FFF6F6" />
+
+            <SolidColorBrush x:Key="SliderTrackValueFill" Color="#EC1627" />
+            <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="#F02F3D" />
+            <SolidColorBrush x:Key="SliderTrackValueFillPressed" Color="#C51120" />
+            <SolidColorBrush x:Key="SliderThumbBackground" Color="#EC1627" />
+            <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver" Color="#F02F3D" />
+            <SolidColorBrush x:Key="SliderThumbBackgroundPressed" Color="#C51120" />
+
+            <SolidColorBrush x:Key="ProgressBarForeground" Color="#EC1627" />
+            <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="#EC1627" />
+            <SolidColorBrush x:Key="ToggleSwitchFillOnPointerOver" Color="#F02F3D" />
+            <SolidColorBrush x:Key="ToggleSwitchStrokeOn" Color="#EC1627" />
 
             <!--
                 Text ON the red. The site's primary-content is #FFF6F6, and the red is dark enough to
