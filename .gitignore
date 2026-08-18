@@ -15,6 +15,12 @@ releases/
 # a doc actually links to should live somewhere a doc can link to.
 screenshots/
 
+# The release token. Ignored BEFORE the file exists, because the failure here is not recoverable the
+# way a stray binary is: a token pushed to a public repo is compromised the moment it lands, and
+# rewriting history does not un-compromise it. build/secrets.example.ps1 is the one that is tracked.
+build/secrets.ps1
+.env
+
 # Test / coverage
 TestResults/
 *.coverage

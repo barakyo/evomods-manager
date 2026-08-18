@@ -74,7 +74,31 @@ dotnet build FlatPadInstaller.slnx
 dotnet test  FlatPadInstaller.slnx
 ```
 
-A portable single-file build — one ~49 MB `.exe`, no runtime to install first:
+### Releasing EvoMods Manager
+
+```
+.\build\pack.ps1    -Version 0.3.0             # build an installer, locally
+.\build\release.ps1 -Version 0.3.0             # ... and upload it as a DRAFT
+.\build\release.ps1 -Version 0.3.0 -Publish    # ... and publish it
+```
+
+Packing and publishing are separate commands on purpose. Packing is safe and repeatable; publishing
+is neither, because every installed copy watches that feed. Uploads are drafts unless `-Publish` is
+passed, so a release can be looked at before anyone is offered it.
+
+`release.ps1` needs `build\secrets.ps1` — gitignored, copied from `build\secrets.example.ps1` —
+holding a fine-grained token scoped to this repo with **Contents: read and write**, which is all
+`vpk upload github` uses.
+
+Updates come from GitHub Releases and need no infrastructure beyond it. `vpk` writes a
+`releases.win.json` manifest carrying a SHA1, SHA256 and size per package; the client compares
+versions itself and refuses to apply anything whose hash does not match. ⚠️ That is integrity, not
+authenticity — the manifest sits beside the packages, so whoever can replace one can replace the
+other. Signing is what would change that; until then the GitHub account's 2FA is what holds the
+update channel shut.
+
+A portable single-file build of the OLD WinForms installer — one ~49 MB `.exe`, no runtime to install
+first:
 
 ```
 dotnet publish FlatPad.App -c Release -o out          # -> out/FlatPadInstaller.exe
