@@ -30,7 +30,10 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
 
     <AssemblyName>EvoMods</AssemblyName>
-    <Version>0.0.1</Version>
+
+    <!-- Also passed on the command line by build\pack.ps1, which is what a release actually uses.
+         Kept in step so a build run straight out of the IDE does not claim to be something else. -->
+    <Version>0.3.0</Version>
 
     <AssemblyTitle>EvoMods Manager</AssemblyTitle>
     <Product>EvoMods Manager</Product>
