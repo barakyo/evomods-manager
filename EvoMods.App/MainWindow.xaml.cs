@@ -47,9 +47,12 @@ public sealed partial class MainWindow : Window
         bar.InactiveBackgroundColor = Hex(0x0D, 0x0F, 0x15);
         bar.InactiveForegroundColor = Hex(0x6C, 0x76, 0x86);
 
-        // Transparent so the buttons sit on the bar's own colour rather than a second one.
-        bar.ButtonBackgroundColor = Colors.Transparent;
-        bar.ButtonInactiveBackgroundColor = Colors.Transparent;
+        // ⚠️ The bar's own colour, NOT Colors.Transparent. Transparent means "show whatever is
+        // behind", and with no system backdrop set there is nothing behind, so the caption buttons
+        // composite to white — a light block in the corner of an otherwise dark window, which is
+        // exactly what it looked like.
+        bar.ButtonBackgroundColor = Hex(0x0D, 0x0F, 0x15);
+        bar.ButtonInactiveBackgroundColor = Hex(0x0D, 0x0F, 0x15);
         bar.ButtonForegroundColor = Hex(0xEB, 0xEF, 0xF4);
         bar.ButtonInactiveForegroundColor = Hex(0x6C, 0x76, 0x86);
         bar.ButtonHoverBackgroundColor = Hex(0x20, 0x24, 0x2C);
