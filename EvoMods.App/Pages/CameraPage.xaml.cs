@@ -84,12 +84,40 @@ public sealed partial class CameraPage : Page
     /// rest change the view you drive from, which is a different kind of decision — and burying that
     /// distinction in per-control small print would be the wrong place for it.
     /// </remarks>
-    private static TextBlock Header(CameraEffect effect) => new()
+    private static UIElement Header(CameraEffect effect) =>
+        Section(effect == CameraEffect.Works ? "Chase camera behaviour" : "Driver view settings");
+
+    /// <summary>
+    /// A section heading with a rule above it.
+    /// </summary>
+    /// <remarks>
+    /// Every block on this page is a stack of labelled sliders, so without a rule they run together
+    /// and a label four rows down could belong to the section above it. Kept identical across all of
+    /// them — a heading that is a different size in each section reads as a hierarchy that is not
+    /// there. The width matches the rows: 210 label, 300 slider, 96 readout, plus the two gaps.
+    /// </remarks>
+    private static UIElement Section(string text)
     {
-        Text = effect == CameraEffect.Works ? "Chase camera behaviour" : "Driver view settings",
-        Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"],
-        Margin = new Thickness(0, 8, 0, 0),
-    };
+        var panel = new StackPanel();
+        panel.Children.Add(new Border
+        {
+            Height = 1,
+            Width = 640,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Margin = new Thickness(0, 0, 0, 12),
+            Background = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+        });
+
+        panel.Children.Add(new TextBlock
+        {
+            Text = text,
+            FontSize = 19,
+            Margin = new Thickness(0, 0, 0, 6),
+            Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"],
+        });
+
+        return panel;
+    }
 
     // ---- framing
 
@@ -103,25 +131,7 @@ public sealed partial class CameraPage : Page
     private UIElement FramingGroup(int camera)
     {
         var panel = new StackPanel { Spacing = 2 };
-
-        // Two groups of four identically-labelled sliders run together without a line between them,
-        // and "Height" four rows down could belong to either camera.
-        panel.Children.Add(new Border
-        {
-            Height = 1,
-            Width = 640,
-            HorizontalAlignment = HorizontalAlignment.Left,
-            Margin = new Thickness(0, 8, 0, 10),
-            Background = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
-        });
-
-        panel.Children.Add(new TextBlock
-        {
-            Text = ChaseCamSpec.CameraNames[camera],
-            FontSize = 19,
-            Margin = new Thickness(0, 0, 0, 6),
-            Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"],
-        });
+        panel.Children.Add(Section(ChaseCamSpec.CameraNames[camera]));
 
         foreach (ChaseCamKnob knob in ChaseCamSpec.Knobs)
             panel.Children.Add(FramingRow(camera, knob));

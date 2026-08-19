@@ -275,9 +275,10 @@ public static class ChaseCamSpec
     /// <summary>What this framing actually looks like, in numbers somebody can picture.</summary>
     public static string Feel(ChaseCamView v)
     {
-        float sky = RoofVsHorizon(v);
-        string text = $"{Verdict(sky)} Roofline {sky:+0.0;-0.0;0.0} points against the horizon, and "
-            + $"the car fills {CarWidthPercent(v):0.0}% of the frame.";
+        // The roofline-against-horizon figure is what DECIDES this, and it is still what Verdict is
+        // computed from — but "+4.5 points against the horizon" is a unit nobody outside this repo
+        // has a feel for, whereas how much of the frame the car fills is one anybody can picture.
+        string text = $"{Verdict(RoofVsHorizon(v))} The car fills {CarWidthPercent(v):0.0}% of the frame.";
 
         // Both of these are the difference between a shot and a mistake, and neither is visible from
         // the numbers on the sliders.
