@@ -9,7 +9,7 @@ capture.
 | **Game content** | Unpack the game so mods load at all, revert it, or take any `.kspkg` apart. |
 | **Flat Pad** | A 1.5 km dead-flat, wall-free test track, derived on your machine from your own game files. |
 | **Filters** | Show the nine filters EVO ships hidden; install five built for video capture. |
-| **Camera** | Chase-camera tuning, with the settle time shown next to every value. |
+| **Camera** | Five chase-camera presets, the eight values behind them, and the settle time shown next to every value. |
 
 It updates itself from GitHub Releases. Download the latest `EvoMods.Manager-win-Setup.exe` from
 [Releases](https://github.com/barakyo/evomods-manager/releases); after that it offers new versions on
@@ -88,6 +88,59 @@ Tuning for video capture. The settings are read at startup, so how the car drive
 looks are fully separate: drive a clean lap on normal settings, exit, set a cinematic camera, relaunch
 and record the replay. An undriveable camera is an acceptable one.
 
+Two files, one screen. **Framing** — where the camera sits — is
+`Saved Games\ACE\CarCameras.carcamerausersettings`. **Behaviour** — lag and stabilisation — is
+`camerasettings.camerasettings`. Which file a setting lives in is not something anyone tuning a
+camera should have to hold, so Apply writes whichever of the two changed.
+
+### Framing
+
+Five presets, from the convention the game ships to the most extreme:
+
+| Preset | near Y / D / P | far Y / D / P | FOV n/f | roof vs horizon | car width |
+| --- | --- | --- | --- | --- | --- |
+| `Stock` | 1.80 / 5.19 / −5.0 | 2.50 / 6.19 / −5.0 | 80 / 65 | −5.1 | 17.4 % |
+| `Cinematic` | 1.35 / 4.40 / −4.0 | 1.85 / 5.60 / −3.5 | 85 / 70 | +0.1 | 19.6 % |
+| `Aggressive` | 1.15 / 3.90 / −3.0 | 1.55 / 5.10 / −3.0 | 95 / 78 | +2.5 | 20.5 % |
+| `Wide` | 1.15 / 4.20 / −3.0 | 1.55 / 5.40 / −3.0 | 105 / 88 | +1.9 | 18.0 % |
+| `Hero` | 0.95 / 4.60 / −0.5 | 1.35 / 5.80 / −1.5 | 90 / 75 | +4.5 | 18.1 % |
+
+Y is height in metres, D distance behind, P pitch in degrees. **Roof vs horizon** is the number that
+decides the look: how far the car's roofline sits above or below the skyline, in percent of frame
+height. Negative reads observational; around zero the roofline rides the horizon; positive cuts above
+it. It is shown beside every preset for the same reason the settle time is shown beside chase lag —
+`1.15 / 4.20 / −3.0` means nothing on its own.
+
+The counter-intuitive part, and the finding the table was built on: **height does not move the
+horizon at all.** The horizon's position is a function of pitch and lens only, so a high horizon needs
+steep down-pitch, and steep down-pitch from a low camera aims at tarmac — you cannot have both out of
+a fixed-pitch chase cam. What lowering buys is the *aim* landing lower on the car, so the car breaks
+the skyline instead of sitting under it.
+
+`Custom` reveals the eight values behind the presets — height, distance, pitch and field of view for
+each of the near and far chase cameras — and moving any of them flips the dropdown to `Custom` rather
+than letting it keep claiming a preset it no longer matches. Every preset is reachable by hand, so
+`Custom` is a true superset rather than a different mode.
+
+Three things about this file are worth knowing:
+
+- **Field of view is global.** One packed array indexed by camera, shared by all twelve cars; the
+  drivable path has no per-car field to narrow it to. It is written because it is most of what makes
+  `Wide` feel wide, and the page says so rather than hiding it. The four indices belonging to the
+  views you actually drive from are hard-refused.
+- **Geometry is per-car, and every car is written.** A file tuned one car at a time matches no preset,
+  which is what the screen reports — naming the car the values on screen came from, because showing
+  one car's numbers as if they were the file's would be a lie.
+- **Side offset is set to zero rather than preserved.** A non-zero `x` is what dragging the in-game
+  gizmo leaves behind; the R34 shipped with 0.25, which is 25 cm toward the passenger side on a
+  right-hand-drive car and pushed the subject off frame centre.
+
+⚠️ `Stock` is the shipped **family convention** — every Kunos car is 1.80 / 2.50 — not a byte-exact
+revert of your own file, because several cars carry values that were drift rather than design. A
+backup is what reverses a specific edit; each write leaves one in `carcameras_backups\`.
+
+### Behaviour
+
 ⚠️ There are **two** `camerasettings.camerasettings` files and only one is read. The copy under the
 game's `system\` has no effect while a user file exists — measured, by cranking a value to 200 in the
 game file and seeing nothing change, then making the same edit in `%USERPROFILE%\Saved Games\ACE\`
@@ -120,9 +173,12 @@ values on build 0.8.1 and did nothing at all, and a control that does nothing is
 ⚠️ Do not open the in-game camera settings screen after saving — the game rewrites the file and
 discards the values.
 
-The file is edited in place, so fields this tool does not know about survive. That is a deliberate
-difference from the reference PowerShell script, which rebuilds the file from the six settings it
-understands and silently drops the rest.
+Both files are edited in place, so fields this tool does not know about survive. That is a deliberate
+difference from the reference PowerShell script, which rebuilds `camerasettings.camerasettings` from
+the six settings it understands and silently drops the rest. `CarCameras.carcamerausersettings` holds
+twelve cars of hand-tuned work, so it gets more than that: a preflight that refuses to touch a file
+which does not already round-trip byte-identical, and a read-back afterwards checking every slot it
+meant to write, every slot it did not, the onboard camera section and the trailers.
 
 ## How it avoids breaking your game
 
@@ -242,7 +298,8 @@ The Python and PowerShell references stay authoritative until each port is confi
 | Registry repair | Rehearsed against a real registry: a scratch copy with a real base track's 5 entries deleted, repaired from the real 72.5 GB archive. All 5 came back **byte-identical**, and no other entry changed. |
 | Filter tables | The stock 1560-byte and a modified 3411-byte `post_processing.table` both round-trip byte-identical, and the nine rows stock ships hidden are exactly the nine the code names. |
 | Self-update | 0.3.0 installed by hand, then updated to 0.4.0 over the network from GitHub Releases and relaunched. |
-| Unit tests | **258**, covering the protobuf layer, the closure crawl, the geometry edits, the archive state machine, progress throttling, registry integrity, the filter table and install plan, and the camera settings file. |
+| Chase camera framing | `Wide` applied from the app to the real 12-car file. The reference script's own diff reports exactly the 22 near/far slots changed, **no driven view touched**, and no entry added or removed; its frame-layout figures agree to 0.01 pt. Live file restored byte-identical afterwards. |
+| Unit tests | **287**, covering the protobuf layer, the closure crawl, the geometry edits, the archive state machine, progress throttling, registry integrity, the filter table and install plan, and both camera settings files. |
 
 **Console divergence from the Python.** The reference implementation is behind: the five bugs a
 real-world v0.8.1 run exposed were fixed here and never back-ported, and it cannot read a `.kspkg` at
@@ -262,7 +319,7 @@ that matters, and it is unaffected: all 1530 bytes still agree.
 | `EvoMods.Core/Game` | Finding the install, switching it between packed and unpacked, reading stock files back out of the archive, and unpacking a standalone `.kspkg`. |
 | `EvoMods.Core/FlatPad` | The Flat Pad recipe: build, install, uninstall, verify, repair. |
 | `EvoMods.Core/Filters` | Post-processing filters: reading `post_processing.table`, showing the ones the game hides, and installing the filters carried in `Filters/Assets`. |
-| `EvoMods.Core/Camera` | The camera settings the game actually honours, edited in place so unknown fields survive. |
+| `EvoMods.Core/Camera` | The camera settings the game actually honours, edited in place so unknown fields survive — behaviour in `camerasettings.camerasettings`, framing and the presets in `CarCameras.carcamerausersettings`. |
 | `EvoMods.App` | The WinUI 3 GUI — a shell and a page per feature, no logic of its own. |
 | `FlatPad.Cli` | Dev entry point. Not shipped. |
 
