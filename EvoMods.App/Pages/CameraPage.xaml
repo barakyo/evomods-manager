@@ -44,18 +44,7 @@
                                Style="{StaticResource CaptionTextBlockStyle}"
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
 
-                    <!-- Only ever shown when the file disagrees with itself, which explains Custom. -->
-                    <TextBlock x:Name="DisagreeNote" TextWrapping="Wrap" MaxWidth="640"
-                               Visibility="Collapsed"
-                               Style="{StaticResource CaptionTextBlockStyle}"
-                               Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
-
                     <StackPanel x:Name="CustomRows" Spacing="12" Visibility="Collapsed" />
-
-                    <TextBlock TextWrapping="Wrap" MaxWidth="640" Margin="0,4,0,0"
-                               Style="{StaticResource CaptionTextBlockStyle}"
-                               Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                               Text="Applied to every car in the file. Field of view is one value shared by all of them — the game has no per-car setting to narrow it to." />
                 </StackPanel>
 
                 <!-- Behaviour and driver view: the settings file the game reads at startup. -->

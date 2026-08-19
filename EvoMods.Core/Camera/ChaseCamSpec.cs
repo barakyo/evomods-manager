@@ -141,7 +141,7 @@ public static class ChaseCamSpec
     [
         new("Stock",
             "The convention every Kunos car ships with. The lens sits well above the roofline, so the "
-            + "car reads observational — sat under the skyline rather than breaking it.",
+            + "car sits under the skyline rather than breaking it.",
             new ChaseCamView(1.80f, 5.19f, -5.0f, 80f),
             new ChaseCamView(2.50f, 6.19f, -5.0f, 65f)),
 
@@ -152,22 +152,20 @@ public static class ChaseCamSpec
             new ChaseCamView(1.85f, 5.60f, -3.5f, 70f)),
 
         new("Aggressive",
-            "The most extreme PROXIMITY — closest in, widest lens, so the car fills the most frame "
-            + "and the world distorts past it.",
+            "The closest in and the widest lens, so the car fills the most frame and the world "
+            + "distorts past it.",
             new ChaseCamView(1.15f, 3.90f, -3.0f, 95f),
             new ChaseCamView(1.55f, 5.10f, -3.0f, 78f)),
 
         new("Wide",
             "Aggressive's stance with the widest lens and about 30 cm more room, for when you want "
-            + "more of the world in shot. The distance does the work — widening the lens alone is a "
-            + "weak zoom-out.",
+            + "more of the world in shot.",
             new ChaseCamView(1.15f, 4.20f, -3.0f, 105f),
             new ChaseCamView(1.55f, 5.40f, -3.0f, 88f)),
 
         new("Hero",
-            "The most extreme ANGLE — the lowest lens of any preset and very nearly level, so the car "
-            + "cuts hard above the skyline. Sits further back than Aggressive because at 0.95 m a "
-            + "3.9 m distance would put the lens in the diffuser.",
+            "The lowest lens of any preset and very nearly level, so the car cuts hard above the "
+            + "skyline.",
             new ChaseCamView(0.95f, 4.60f, -0.5f, 90f),
             new ChaseCamView(1.35f, 5.80f, -1.5f, 75f)),
     ];

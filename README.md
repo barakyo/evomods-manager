@@ -125,12 +125,14 @@ than letting it keep claiming a preset it no longer matches. Every preset is rea
 Three things about this file are worth knowing:
 
 - **Field of view is global.** One packed array indexed by camera, shared by all twelve cars; the
-  drivable path has no per-car field to narrow it to. It is written because it is most of what makes
-  `Wide` feel wide, and the page says so rather than hiding it. The four indices belonging to the
-  views you actually drive from are hard-refused.
-- **Geometry is per-car, and every car is written.** A file tuned one car at a time matches no preset,
-  which is what the screen reports — naming the car the values on screen came from, because showing
-  one car's numbers as if they were the file's would be a lie.
+  drivable path has no per-car field to narrow it to. It is written as part of the preset because it
+  is most of what makes `Wide` feel wide. The four indices belonging to the views you actually drive
+  from are hard-refused.
+- **Geometry is per-car, and every car is written.** There is no car picker, because a preset that
+  moved the lens on one car and the field of view on all twelve would be the confusing half-measure
+  rather than the safe one. A file tuned one car at a time therefore matches no preset: the screen
+  falls back to `Custom` showing a representative car, and Apply stays available because there is
+  still work to do even when those values match exactly.
 - **Side offset is set to zero rather than preserved.** A non-zero `x` is what dragging the in-game
   gizmo leaves behind; the R34 shipped with 0.25, which is 25 cm toward the passenger side on a
   right-hand-drive car and pushed the subject off frame centre.

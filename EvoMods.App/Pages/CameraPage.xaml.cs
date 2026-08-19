@@ -103,9 +103,23 @@ public sealed partial class CameraPage : Page
     private UIElement FramingGroup(int camera)
     {
         var panel = new StackPanel { Spacing = 2 };
+
+        // Two groups of four identically-labelled sliders run together without a line between them,
+        // and "Height" four rows down could belong to either camera.
+        panel.Children.Add(new Border
+        {
+            Height = 1,
+            Width = 640,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Margin = new Thickness(0, 8, 0, 10),
+            Background = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+        });
+
         panel.Children.Add(new TextBlock
         {
             Text = ChaseCamSpec.CameraNames[camera],
+            FontSize = 19,
+            Margin = new Thickness(0, 0, 0, 6),
             Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"],
         });
 
@@ -218,38 +232,13 @@ public sealed partial class CameraPage : Page
         // reads as two different facts until you have compared them word for word.
         if (Selected() is { } preset)
         {
-            PresetBlurb.Text = $"{preset.Blurb} {ChaseCamSpec.Feel(preset.Near)}";
+            PresetBlurb.Text = preset.Blurb;
             PresetBlurb.Visibility = Visibility.Visible;
         }
         else
         {
             PresetBlurb.Visibility = Visibility.Collapsed;
         }
-
-        DescribeDisagreement();
-    }
-
-    /// <summary>
-    /// Say so when the file's cars are not all framed alike, because that is why nothing matches.
-    /// </summary>
-    /// <remarks>
-    /// This is what a file the reference script edited one car at a time looks like, and there is
-    /// nothing else on screen to explain why a file plainly set to Wide does not say Wide. Which car
-    /// the sliders came from is only worth naming while they are the ones being shown.
-    /// </remarks>
-    private void DescribeDisagreement()
-    {
-        bool disagree = _framingOnDisk.Exists && !_framingOnDisk.Uniform;
-        DisagreeNote.Visibility = disagree ? Visibility.Visible : Visibility.Collapsed;
-        if (!disagree)
-            return;
-
-        DisagreeNote.Text =
-            $"On disk the {_framingOnDisk.Cars.Count} cars in this file are not all framed the same "
-            + "way, so it matches no preset. Applying sets every one of them."
-            + (Selected() is null
-                ? $" The values shown are {_framingOnDisk.Representative}'s."
-                : string.Empty);
     }
 
     /// <summary>The preset the dropdown names, or null when it says Custom.</summary>
