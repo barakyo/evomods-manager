@@ -43,12 +43,21 @@ public sealed partial class FiltersPage : Page
         OursList.ItemsSource = _ours;
         StockList.ItemsSource = _stock;
         OtherList.ItemsSource = _other;
-        Loaded += (_, _) => Refresh();
+        Loaded += async (_, _) => await Refresh();
     }
 
     // ---- reading
 
-    private void Refresh()
+    /// <summary>
+    /// Read the live registry, and the stock one to compare it against.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ Off the UI thread, because the comparison opens <c>content.kspkg.bak</c> to pull
+    /// <c>post_processing.table</c> out of it — around half a second against a real archive, which
+    /// on the UI thread is half a second of a dead window every time this tab is selected. The page
+    /// is rebuilt on every navigation, so that cost is paid on each visit rather than once.
+    /// </remarks>
+    private async Task Refresh()
     {
         _gameRoot = AppInfo.GameRoot;
         if (_gameRoot is null)
@@ -57,17 +66,47 @@ public sealed partial class FiltersPage : Page
             return;
         }
 
+        string root = _gameRoot;
+        Bar.Visibility = Visibility.Visible;
+        UnlockButton.IsEnabled = false;
+        InstallButton.IsEnabled = false;
+
+        ArchiveMode mode;
+        FilterSurvey? survey;
+        try
+        {
+            (mode, survey) = await Task.Run(() =>
+            {
+                ArchiveMode found = GameArchive.Detect(root).Mode;
+
+                // Not surveyed when packed: the answer is refused below either way, and reading it
+                // would mean opening the archive to produce a comparison nobody is shown.
+                return found == ArchiveMode.Packed
+                    ? (found, (FilterSurvey?)null)
+                    : (found, new FilterInstaller(root, _ => { }).Survey(_bundle.Filters));
+            });
+        }
+        catch (Exception ex)
+        {
+            Blocked($"The filter table could not be read — {ex.Message}");
+            return;
+        }
+        finally
+        {
+            Bar.Visibility = Visibility.Collapsed;
+        }
+
         // ⚠️ While a live archive is present the game reads it and ignores loose content, so a filter
         // installed now would be written correctly, registered correctly, and never load. Refusing is
         // the only honest answer, and Game is one click away.
-        if (GameArchive.Detect(_gameRoot).Mode == ArchiveMode.Packed)
+        if (mode == ArchiveMode.Packed)
         {
             Blocked("The game is still packed, so it reads its archive and ignores loose content — "
                 + "filters installed now would never load. Unpack it on the Game screen first.");
             return;
         }
 
-        _survey = new FilterInstaller(_gameRoot, _ => { }).Survey(_bundle.Filters);
+        _survey = survey!;
         if (_survey.Filters.Count == 0)
         {
             Blocked($"post_processing.table could not be read — {_survey.StockSource}");
@@ -195,7 +234,7 @@ public sealed partial class FiltersPage : Page
             Notice.IsOpen = true;
         }
 
-        Refresh();
+        await Refresh();
     }
 
     // ---- state as the reader sees it

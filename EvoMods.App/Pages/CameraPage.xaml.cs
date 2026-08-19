@@ -37,6 +37,22 @@ public sealed partial class CameraPage : Page
     private const string Custom = "Custom";
 
     /// <summary>
+    /// The running game's PID as of the last <see cref="Refresh"/>, or null if it was not up.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ Asked once per refresh rather than per button update, because the answer costs ~8 ms:
+    /// <see cref="CameraSettings.RunningGame"/> enumerates every process on the machine, and
+    /// <see cref="UpdateButtons"/> runs from all fourteen sliders' ValueChanged. Filling them in on
+    /// load was ~16 process sweeps for ~130 ms of visible delay, against half a millisecond to read
+    /// both settings files.
+    /// <para>
+    /// Safe to cache because it only gates whether the buttons are offered. Both writers re-check it
+    /// for real at the moment they write, which is the check that actually protects the file.
+    /// </para>
+    /// </remarks>
+    private int? _gamePid;
+
+    /// <summary>
     /// True while values are being pushed INTO the sliders rather than pulled out of them.
     /// </summary>
     /// <remarks>
@@ -347,6 +363,9 @@ public sealed partial class CameraPage : Page
 
     private void Refresh()
     {
+        // First, because filling the sliders below trips UpdateButtons on every one of them.
+        _gamePid = CameraSettings.RunningGame()?.Id;
+
         _onDisk = CameraSettings.Read();
         foreach ((CameraField field, Slider slider) in _sliders)
         {
@@ -372,10 +391,10 @@ public sealed partial class CameraPage : Page
                 Missing() + " Launch the game once so it writes one. This edits the files the game "
                 + "already has rather than inventing them.", InfoBarSeverity.Warning);
         }
-        else if (CameraSettings.RunningGame() is { } game)
+        else if (_gamePid is { } pid)
         {
             Warn("The game is running",
-                $"Assetto Corsa EVO (PID {game.Id}) reads these files at startup and rewrites them "
+                $"Assetto Corsa EVO (PID {pid}) reads these files at startup and rewrites them "
                 + "on exit, so nothing can be saved while it is up. Close it and come back.",
                 InfoBarSeverity.Warning);
         }
@@ -419,7 +438,7 @@ public sealed partial class CameraPage : Page
     private void UpdateButtons()
     {
         bool behaviourDirty = _sliders.Any(s => Math.Abs(s.Value.Value - _onDisk.ValueOf(s.Key)) > 1e-4);
-        bool gameUp = CameraSettings.RunningGame() is not null;
+        bool gameUp = _gamePid is not null;
 
         // Each file stands on its own: one being absent is no reason to refuse the other.
         bool behaviour = _onDisk.Exists && !gameUp;

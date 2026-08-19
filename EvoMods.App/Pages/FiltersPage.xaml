@@ -46,7 +46,11 @@
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
         </StackPanel>
 
-        <InfoBar x:Name="Notice" Grid.Row="1" IsOpen="False" IsClosable="False" />
+        <StackPanel Grid.Row="1" Spacing="8">
+            <!-- Reading the stock table means opening the game archive, which is not instant. -->
+            <ProgressBar x:Name="Bar" IsIndeterminate="True" Height="6" Visibility="Collapsed" />
+            <InfoBar x:Name="Notice" IsOpen="False" IsClosable="False" />
+        </StackPanel>
 
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="0,0,12,0">
             <StackPanel Spacing="18">
