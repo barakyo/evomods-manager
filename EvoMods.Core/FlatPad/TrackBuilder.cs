@@ -195,17 +195,29 @@ public sealed class TrackBuilder(string gameRoot, Action<string> log)
         n.Raw = raw;
     }
 
+    /// <summary>The layout container, as <see cref="LayoutMode"/> chooses.</summary>
+    public byte[] BuildLayout() => BuildLayout(LayoutMode);
+
     /// <summary>
-    /// The layout container: keep the splines (mandatory), drop the poly_direction visuals, and
-    /// reshape the splines into an oval centred on the spawn.
+    /// The layout container: drop the poly_direction visuals, then keep the splines verbatim,
+    /// reshape them into an oval centred on the spawn, or drop them too.
     /// </summary>
-    public byte[] BuildLayout()
+    public byte[] BuildLayout(LayoutSplines mode)
     {
-        List<PbNode> nodes = PbTree.ParseTree(ReadSrc($"containers/layout_{Layout}.scene"))
+        List<PbNode> parsed = PbTree.ParseTree(ReadSrc($"containers/layout_{Layout}.scene"));
+        if (mode == LayoutSplines.None)
+        {
+            // Header only, like additional.scene: the container still exists, the scene still
+            // references it, and it holds nothing a direction can be derived from.
+            log("  layout: splines removed — the pad has no forward direction");
+            return PbTree.EncodeTree(parsed.Where(n => n.Number == 1).ToList());
+        }
+
+        List<PbNode> nodes = parsed
             .Where(n => !(n.Number == 2
                           && SceneNodes.Name(n).StartsWith("poly_direction", StringComparison.Ordinal)))
             .ToList();
-        if (!ReshapeLayout)
+        if (mode == LayoutSplines.Donor)
             return PbTree.EncodeTree(nodes);
 
         string outward = SceneEdit.LeftIsOutward(nodes, $"{Layout}_center_spline",
@@ -293,7 +305,7 @@ public sealed class TrackBuilder(string gameRoot, Action<string> log)
         outFiles[SrcRef(marshals)] = PbTree.EncodeTree(PbTree.ParseTree(ReadSrc(marshals))
             .Where(n => !(n.Number == 2 && SceneNodes.Type(n) == "Marshal")).ToList());
 
-        log("  containers: additional emptied, layout splines kept, marshals removed");
+        log("  containers: additional emptied, layout built, marshals removed");
         outFiles[SrcRef($"containers/pitlane_zones_{Layout}.scene")] = BuildPitZones();
         return outFiles;
     }

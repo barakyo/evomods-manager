@@ -124,7 +124,7 @@ public class TrackBuilderTests : IDisposable
             Zone("gp_center_spline", 0, 0),
             Zone("gp_ideal_line", 0, 0)));
 
-        var ex = Assert.Throws<InstallException>(() => Builder.BuildLayout());
+        var ex = Assert.Throws<InstallException>(() => Builder.BuildLayout(FlatPadSpec.LayoutSplines.Oval));
 
         Assert.Contains("gp_track_limits_right", ex.Message);
     }
@@ -141,7 +141,7 @@ public class TrackBuilderTests : IDisposable
             Zone("gp_track_limits_right", 0, 0),
             Zone("poly_direction_1", 0, 0)));
 
-        byte[] outBytes = Builder.BuildLayout();
+        byte[] outBytes = Builder.BuildLayout(FlatPadSpec.LayoutSplines.Oval);
 
         var byName = PbTree.ParseTree(outBytes)
             .Where(n => n.Number == 2 && n.Message is not null)
@@ -154,6 +154,25 @@ public class TrackBuilderTests : IDisposable
             Assert.All(byName[name], p => Assert.Equal(want,
                 Math.Sqrt(Math.Pow(p.X + 219.0, 2) + Math.Pow(p.Z - 164.0, 2)), 2));
         }
+    }
+
+    [Fact]
+    public void By_default_the_layout_keeps_no_splines_so_the_pad_has_no_forward_direction()
+    {
+        // As HDC Drift Park ships it: with no spline there is no "wrong way" to drive.
+        WriteDonor("containers/layout_gp.scene", Cat(
+            StringField(1, "Spline"),
+            Zone("gp_track_limits_left", 0, 0),
+            Zone("gp_center_spline", 0, 0),
+            Zone("gp_ideal_line", 0, 0),
+            Zone("gp_track_limits_right", 0, 0),
+            Zone("poly_direction_1", 0, 0)));
+
+        List<PbNode> outNodes = PbTree.ParseTree(Builder.BuildLayout());
+
+        Assert.DoesNotContain(outNodes, n => n.Number == 2);
+        Assert.Single(outNodes, n => n.Number == 1);   // the header survives, as additional.scene's does
+        Assert.DoesNotContain(FlatPadSpec.ConventionFiles, f => f.StartsWith("layouts/", StringComparison.Ordinal));
     }
 
     /// <summary>A named zone node with a 4-point polygon and <c>[13]</c> bounds.</summary>

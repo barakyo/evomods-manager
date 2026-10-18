@@ -54,14 +54,18 @@ public sealed class SyntheticTrack : IDisposable
         return this;
     }
 
-    public SyntheticTrack WithADonorShapedSpline()
+    public SyntheticTrack WithTheDonorsSplinesLeftIn()
     {
-        // The donor's real circuit, not the oval: right radius nowhere near what was asked for.
+        // Any spline gives the pad a "forward", and with it wrong-way penalties.
         Write($"content/tracks/flatpad/containers/layout_gp.scene", Cat(
-            Spline("gp_track_limits_left", 650.0f),
-            Spline("gp_center_spline", 430.0f),
-            Spline("gp_ideal_line", 430.0f),
-            Spline("gp_track_limits_right", 155.0f)));
+            StringField(1, "Spline"),
+            Spline("gp_center_spline", 430.0f)));
+        return this;
+    }
+
+    public SyntheticTrack WithTheDonorsAiLine()
+    {
+        Write("content/tracks/flatpad/layouts/layout_gp.ideal_line.aisplinedata", StringField(1, "ai line"));
         return this;
     }
 
@@ -129,11 +133,8 @@ public sealed class SyntheticTrack : IDisposable
 
     private void WriteLayoutSplines()
     {
-        Write("content/tracks/flatpad/containers/layout_gp.scene", Cat(
-            Spline("gp_track_limits_left", 650.0f),
-            Spline("gp_center_spline", 430.0f),
-            Spline("gp_ideal_line", 430.0f),
-            Spline("gp_track_limits_right", 150.0f)));
+        // Header only: no spline, so no forward direction.
+        Write("content/tracks/flatpad/containers/layout_gp.scene", StringField(1, "Spline"));
     }
 
     private static byte[] Spline(string name, float radius) =>

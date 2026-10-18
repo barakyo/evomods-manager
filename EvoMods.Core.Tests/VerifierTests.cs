@@ -30,7 +30,7 @@ public class VerifierTests
         Assert.Contains("121 own refs checked, 1 shared refs checked", Line(report, "content/tracks/flatpad"));
         Assert.Contains("3 checked against the pad AABB", Line(report, "  spawns:"));
         Assert.Contains("1 (want 1)", Line(report, "pit zones on the pad"));
-        Assert.Contains("4 reshaped (want 4)", Line(report, "layout splines:"));
+        Assert.Contains(@"0 node(s), 0 layouts\ file(s) (want 0 and 0)", Line(report, "  layout:"));
         Assert.Contains("5/5 present", Line(report, "ui tiles:"));
     }
 
@@ -75,14 +75,26 @@ public class VerifierTests
     }
 
     [Fact]
-    public void A_spline_that_is_not_the_requested_oval_is_reported()
+    public void A_spline_left_in_the_layout_is_reported()
     {
-        using var game = new SyntheticTrack().WithADonorShapedSpline();
+        // The game derives "forward" from it, and ordinary driving on the pad reads as reverse.
+        using var game = new SyntheticTrack().WithTheDonorsSplinesLeftIn();
 
         VerifyReport report = Verify(game);
 
         Assert.False(report.Passed);
-        Assert.True(HasProblem(report, "'gp_track_limits_right' is not the requested oval"));
+        Assert.True(HasProblem(report, "the layout container still holds 1 node(s)"));
+    }
+
+    [Fact]
+    public void An_ai_line_copied_from_the_donor_is_reported()
+    {
+        using var game = new SyntheticTrack().WithTheDonorsAiLine();
+
+        VerifyReport report = Verify(game);
+
+        Assert.False(report.Passed);
+        Assert.True(HasProblem(report, "layouts/layout_gp.ideal_line.aisplinedata is present"));
     }
 
     [Fact]

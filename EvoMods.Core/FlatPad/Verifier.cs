@@ -329,7 +329,13 @@ public sealed class Verifier(string gameRoot, IStockRegistry? stock = null)
     private void CheckLayoutSplines(VerifyReport report, Vec3 lo, Vec3 hi)
     {
         string lpath = Rp($"{DstDir}/containers/layout_{Layout}.scene");
-        if (!ReshapeLayout || !File.Exists(lpath))
+        if (LayoutMode == LayoutSplines.None)
+        {
+            CheckNoDirection(report, lpath);
+            return;
+        }
+
+        if (LayoutMode != LayoutSplines.Oval || !File.Exists(lpath))
             return;
 
         int checked_ = 0;
@@ -368,6 +374,21 @@ public sealed class Verifier(string gameRoot, IStockRegistry? stock = null)
         report.Line($"  layout splines: {checked_} reshaped (want {OvalRadii.Length}), {bad} off the pad");
         if (checked_ != OvalRadii.Length)
             report.Problem($"only {checked_} of {OvalRadii.Length} layout splines were reshaped");
+    }
+
+    /// <summary>Nothing left that the game could derive a forward direction from.</summary>
+    private void CheckNoDirection(VerifyReport report, string lpath)
+    {
+        int nodes = File.Exists(lpath)
+            ? PbTree.ParseTree(File.ReadAllBytes(lpath)).Count(n => n.Number == 2)
+            : 0;
+        List<string> layoutFiles = LayoutFiles.Where(f => File.Exists(Rp($"{DstDir}/{f}"))).ToList();
+
+        report.Line($"  layout: {nodes} node(s), {layoutFiles.Count} layouts\\ file(s) (want 0 and 0)");
+        if (nodes > 0)
+            report.Problem($"the layout container still holds {nodes} node(s) — a spline there gives the pad a direction");
+        foreach (string f in layoutFiles)
+            report.Problem($"{f} is present — an AI line gives the pad a direction");
     }
 
     // ------------------------------------------------------------------ 4. registration

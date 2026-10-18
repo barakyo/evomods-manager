@@ -121,21 +121,39 @@ public static class FlatPadSpec
     public const double PitZoneExileZ = 100000.0;
 
     // ----------------------------------------------------------------- layout splines
+    /// <summary>What the layout container keeps of the donor's splines.</summary>
+    public enum LayoutSplines
+    {
+        /// <summary>The donor's circuit splines, verbatim.</summary>
+        Donor,
+
+        /// <summary>The donor's splines reshaped into ovals centred on the spawn.</summary>
+        Oval,
+
+        /// <summary>No splines, and none of the <c>layouts\</c> AI/control-point files.</summary>
+        None,
+    }
+
     /// <summary>
-    /// False keeps the donor's circuit splines verbatim.
+    /// <see cref="LayoutSplines.None"/>: the track has no "forward", as an open drift map has none.
     /// </summary>
     /// <remarks>
     /// The game derives "which way is forward" from the layout splines, and the donor's still trace
     /// its real circuit — so across the pad that direction field points every which way and ordinary
     /// driving reads as reverse, which escalates to a disqualification. Penalties are configured
-    /// globally per game mode, so a track cannot switch them off. What a track CAN do is choose a
-    /// direction field that is hard to oppose: one big oval CENTRED ON THE SPAWN makes every radial
-    /// line out of the spawn perpendicular to the loop, so driving away in any direction reads as
-    /// neither forward nor reverse.
+    /// globally per game mode, so a track cannot switch them off.
+    ///
+    /// The oval was the first answer: centred on the spawn, every radial line out of it is
+    /// perpendicular to the loop, so driving AWAY reads as neither forward nor reverse. But any
+    /// lap of the pad still runs along the loop one way or the other, and still drew penalties.
+    ///
+    /// HDC Drift Park (EvoForge) ships a layout container of meshes only — not one Spline — and no
+    /// <c>layouts\</c> folder, and it loads and drives in Practice with no wrong-way calls. None
+    /// copies that. Oval is kept compilable as the fallback should a spline-free Sebring clone not load.
     /// </remarks>
-    // Deliberately not `const`: it is an escape hatch worth keeping compilable, and folding it away
-    // turns the other branch into an "unreachable code" error.
-    public static readonly bool ReshapeLayout = true;
+    // Deliberately not `const`: an escape hatch worth keeping compilable, and folding it away turns
+    // the other branches into "unreachable code" errors.
+    public static readonly LayoutSplines LayoutMode = LayoutSplines.None;
 
     /// <summary>1.0 = circle (the pad is square); &gt;1 stretches X.</summary>
     public const double OvalAspect = 1.0;
@@ -161,13 +179,20 @@ public static class FlatPadSpec
     }
 
     // ----------------------------------------------------------------- files & paths
-    /// <summary>Loaded by folder convention rather than by reference — seed the closure with them.</summary>
-    public static readonly string[] ConventionFiles =
+    /// <summary>The <c>layouts\</c> files: the AI lines and control points traced along the donor circuit.</summary>
+    public static readonly string[] LayoutFiles =
     [
-        SrcTrackName,
         $"layouts/layout_{Layout}.trackcontrolpoints",
         $"layouts/layout_{Layout}.ideal_line.aisplinedata",
         $"layouts/layout_{Layout}.pitlane.aisplinedata",
+    ];
+
+    /// <summary>Loaded by folder convention rather than by reference — seed the closure with them.</summary>
+    /// <remarks>Nothing references the <see cref="LayoutFiles"/>, so leaving them out of the seeds leaves them uncopied.</remarks>
+    public static readonly string[] ConventionFiles =
+    [
+        SrcTrackName,
+        .. LayoutMode == LayoutSplines.None ? [] : LayoutFiles,
         $"dynamic_track/{Layout}.dynamictrackpresetcompressed",
     ];
 
