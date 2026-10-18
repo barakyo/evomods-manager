@@ -28,7 +28,6 @@ public sealed class SyntheticTrack : IDisposable
         WriteReferenceClosure();
         WritePadMesh(PadHalf);
         WriteSpawns(SpawnX, SpawnZ);
-        WritePitZone(SpawnX, SpawnZ, radius: 30.0f);
         WriteLayoutSplines();
         WriteTables();
         WriteUiTiles(5);
@@ -42,15 +41,15 @@ public sealed class SyntheticTrack : IDisposable
         return this;
     }
 
-    public SyntheticTrack WithEveryPitZoneExiled()
+    public SyntheticTrack WithThePitZonesLeftIn()
     {
-        WritePitZone(SpawnX + 100000, SpawnZ + 100000, radius: 30.0f);
+        WritePitZone(SpawnX, SpawnZ, radius: 30.0f);
         return this;
     }
 
-    public SyntheticTrack WithAnOversizedPitZone()
+    public SyntheticTrack WithASessionStillLoadingThePitZones()
     {
-        WritePitZone(SpawnX, SpawnZ, radius: 400.0f);
+        WriteTables(pitZonesInRows: true);
         return this;
     }
 
@@ -170,7 +169,7 @@ public sealed class SyntheticTrack : IDisposable
     private static byte[] Vec3Field(int field, float x, float y, float z) =>
         MessageField(field, Cat(Fixed32Field(1, x), Fixed32Field(2, y), Fixed32Field(3, z)));
 
-    private void WriteTables(string[]? sessions = null)
+    private void WriteTables(string[]? sessions = null, bool pitZonesInRows = false)
     {
         sessions ??= ["GP Time Attack", "GP Hotstint", "No Game Mode"];
 
@@ -184,15 +183,17 @@ public sealed class SyntheticTrack : IDisposable
         foreach (string s in new[] { "GP Time Attack", "GP Hotstint", "GP Race", "No Game Mode" })
             entries.Add(ContainerEntry(s, "Sebring International Raceway", 5954, 36));
         foreach (string s in sessions)
-            entries.Add(ContainerEntry(s, "Flat Pad", 26001, 37));
+            entries.Add(ContainerEntry(s, "Flat Pad", 26001, 37, pitZonesInRows));
         Write("system/track_containers.table", MessageField(2, Cat([.. entries])));
     }
 
-    private static byte[] ContainerEntry(string session, string track, ulong id, ulong index) =>
+    private static byte[] ContainerEntry(string session, string track, ulong id, ulong index,
+        bool pitZones = false) =>
         MessageField(3, MessageField(8, Cat(
             StringField(1, session),
             VarintField(8, id),
             StringField(10, track),
+            pitZones ? StringField(11, @"content\tracks\flatpad\containers\pitlane_zones_gp.scene") : [],
             VarintField(21, index))));
 
     private void WriteUiTiles(int count)

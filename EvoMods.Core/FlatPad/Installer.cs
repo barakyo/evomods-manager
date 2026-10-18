@@ -176,7 +176,11 @@ public sealed class Installer(string gameRoot, Action<string> log)
 
         (ulong id, ulong index) = RegistryNumbers.Allocate(entries, previous: previous);
         foreach (string session in Sessions)
-            TableEditor.AppendTableEntry(tree, donor[session], repl, [([8, 8], id), ([8, 21], index)]);
+        {
+            PbNode entry = TableEditor.AppendTableEntry(tree, donor[session], repl, [([8, 8], id), ([8, 21], index)]);
+            if (!KeepPitBox)
+                DropContainer(entry, $"{PitZonesContainer}.scene");
+        }
 
         File.WriteAllBytes(Rp(ContainersTable), PbTree.EncodeTree(tree));
         log($"  track_containers.table: registered {PyFormat.Repr(Sessions)} "
@@ -184,6 +188,17 @@ public sealed class Installer(string gameRoot, Action<string> log)
             + (removed > 0 ? $", replaced {removed} previous" : ""));
 
         DeleteLegacySnapshots();
+    }
+
+    /// <summary>Drop one file from a session entry's <c>[8.11]</c> container list.</summary>
+    private static void DropContainer(PbNode entry, string fileName)
+    {
+        PbNode session = TableEditor.Child(entry, 8)
+                         ?? throw new InstallException("a session entry has no [8] message");
+        int removed = session.Message!.RemoveAll(n => n.Number == 11
+            && (TableEditor.RawText(n)?.EndsWith("\\" + fileName, StringComparison.Ordinal) ?? false));
+        if (removed > 0)
+            session.Dirty = true;
     }
 
     /// <summary>

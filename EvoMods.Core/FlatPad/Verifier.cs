@@ -278,7 +278,13 @@ public sealed class Verifier(string gameRoot, IStockRegistry? stock = null)
 
     private void CheckPitZones(VerifyReport report, Vec3 lo, Vec3 hi)
     {
-        string zpath = Rp($"{DstDir}/containers/pitlane_zones_{Layout}.scene");
+        string zpath = Rp($"{DstDir}/containers/{PitZonesContainer}.scene");
+        if (!KeepPitBox)
+        {
+            CheckNoPitZones(report, zpath);
+            return;
+        }
+
         var zones = new List<(string Name, float X0, float X1, float Z0, float Z1)>();
         if (File.Exists(zpath))
         {
@@ -322,6 +328,29 @@ public sealed class Verifier(string gameRoot, IStockRegistry? stock = null)
                                + "into by accident and be teleported to the pits");
             }
         }
+    }
+
+    /// <summary>Nothing loads a pit-zone container: not the scene, not a session row — and there is none.</summary>
+    private void CheckNoPitZones(VerifyReport report, string zpath)
+    {
+        string scene = Rp($"{DstDir}/{Dst}.scene");
+        bool inScene = File.Exists(scene) && PbTree.ParseTree(File.ReadAllBytes(scene))
+            .Any(n => n.Number == 2 && SceneNodes.Name(n) == PitZonesContainer);
+
+        List<PbNode> entries = TableEditor.TableEntries(PbTree.ParseTree(Read(ContainersTable))).Entries;
+        int inRows = entries
+            .Where(e => TableEditor.TextAt(e, 8, 10) == DstDisplay)
+            .Count(e => TableEditor.Child(e, 8)?.Find(11).Any(c =>
+                TableEditor.RawText(c)?.Contains(PitZonesContainer, StringComparison.Ordinal) ?? false) ?? false);
+
+        report.Line($"  pit zones: file {(File.Exists(zpath) ? "present" : "absent")}, "
+                    + $"in the scene: {PyFormat.Bool(inScene)}, in {inRows} session row(s) (want absent, False, 0)");
+        if (File.Exists(zpath))
+            report.Problem($"{DstDir}/containers/{PitZonesContainer}.scene is present — the pad would have a pit box");
+        if (inScene)
+            report.Problem($"the scene still loads the '{PitZonesContainer}' container");
+        if (inRows > 0)
+            report.Problem($"{inRows} session row(s) still load {PitZonesContainer}.scene");
     }
 
     // ------------------------------------------------------------------ 3c. the oval layout

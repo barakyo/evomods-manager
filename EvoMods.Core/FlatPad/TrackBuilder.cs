@@ -122,7 +122,8 @@ public sealed class TrackBuilder(string gameRoot, Action<string> log)
                 if (ty is "Decal" or "Marshal")
                     continue;
                 if (ty == "Container" && (nm.StartsWith("barb_1", StringComparison.Ordinal)
-                                          || nm.StartsWith("big_screens", StringComparison.Ordinal)))
+                                          || nm.StartsWith("big_screens", StringComparison.Ordinal)
+                                          || (!KeepPitBox && nm == PitZonesContainer)))
                 {
                     continue;
                 }
@@ -306,7 +307,10 @@ public sealed class TrackBuilder(string gameRoot, Action<string> log)
             .Where(n => !(n.Number == 2 && SceneNodes.Type(n) == "Marshal")).ToList());
 
         log("  containers: additional emptied, layout built, marshals removed");
-        outFiles[SrcRef($"containers/pitlane_zones_{Layout}.scene")] = BuildPitZones();
+        if (KeepPitBox)
+            outFiles[SrcRef($"containers/{PitZonesContainer}.scene")] = BuildPitZones();
+        else
+            log("  pit zones: none — the scene and the sessions no longer load them");
         return outFiles;
     }
 }

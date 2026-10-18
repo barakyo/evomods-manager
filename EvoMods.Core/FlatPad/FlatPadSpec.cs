@@ -120,6 +120,21 @@ public static class FlatPadSpec
 
     public const double PitZoneExileZ = 100000.0;
 
+    /// <summary>
+    /// False: no pit-zone container at all — not in the scene, not in the session rows, not on disk.
+    /// </summary>
+    /// <remarks>
+    /// The hang above is what a pit-zone container with no zone AT THE SPAWN does. HDC Drift Park
+    /// ships no pit-zone container anywhere, and loads with no pit box. Oval-era Flat Pad also still
+    /// carried Sebring's pitlane spline; with the layout splines gone (<see cref="LayoutMode"/>)
+    /// nothing is left that expects a pit lane. True restores the one-box pad.
+    /// </remarks>
+    // Not `const`, for the same reason as LayoutMode.
+    public static readonly bool KeepPitBox = false;
+
+    /// <summary>The pit-zone container, as the scene and the session rows name it.</summary>
+    public const string PitZonesContainer = $"pitlane_zones_{Layout}";
+
     // ----------------------------------------------------------------- layout splines
     /// <summary>What the layout container keeps of the donor's splines.</summary>
     public enum LayoutSplines

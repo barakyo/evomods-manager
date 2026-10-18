@@ -29,7 +29,7 @@ public class VerifierTests
         // own count.
         Assert.Contains("121 own refs checked, 1 shared refs checked", Line(report, "content/tracks/flatpad"));
         Assert.Contains("3 checked against the pad AABB", Line(report, "  spawns:"));
-        Assert.Contains("1 (want 1)", Line(report, "pit zones on the pad"));
+        Assert.Contains("file absent, in the scene: False, in 0 session row(s)", Line(report, "  pit zones:"));
         Assert.Contains(@"0 node(s), 0 layouts\ file(s) (want 0 and 0)", Line(report, "  layout:"));
         Assert.Contains("5/5 present", Line(report, "ui tiles:"));
     }
@@ -49,29 +49,27 @@ public class VerifierTests
     }
 
     [Fact]
-    public void No_pit_zone_at_the_spawn_is_reported()
+    public void A_pit_zone_file_left_on_disk_is_reported()
     {
-        // Session start teleports the car to its box, which must fire "entered to pitlane" for the
-        // pitlane page to open. With every zone exiled the load hangs on a dead screen.
-        using var game = new SyntheticTrack().WithEveryPitZoneExiled();
+        // As HDC Drift Park ships it, the pad has no pit-zone container, so no pit box.
+        using var game = new SyntheticTrack().WithThePitZonesLeftIn();
 
         VerifyReport report = Verify(game);
 
         Assert.False(report.Passed);
-        Assert.True(HasProblem(report, "exactly one pitlane zone must sit on the pad"));
-        Assert.Contains("0 (want 1)", Line(report, "pit zones on the pad"));
+        Assert.True(HasProblem(report, "pitlane_zones_gp.scene is present"));
     }
 
     [Fact]
-    public void A_pit_zone_big_enough_to_drive_into_is_reported()
+    public void A_session_still_loading_the_pit_zones_is_reported()
     {
-        // Crossing a zone mid-test teleports the car to the pits and opens the setup screen.
-        using var game = new SyntheticTrack().WithAnOversizedPitZone();
+        // The file is gone, so a row that still names it points at nothing.
+        using var game = new SyntheticTrack().WithASessionStillLoadingThePitZones();
 
         VerifyReport report = Verify(game);
 
         Assert.False(report.Passed);
-        Assert.True(HasProblem(report, "big enough to drive into by accident"));
+        Assert.True(HasProblem(report, "3 session row(s) still load pitlane_zones_gp.scene"));
     }
 
     [Fact]
