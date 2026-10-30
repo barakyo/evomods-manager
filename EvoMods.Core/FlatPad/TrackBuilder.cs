@@ -153,7 +153,7 @@ public sealed class TrackBuilder(string gameRoot, Action<string> log)
     /// A <paramref name="spread"/> of 0 clusters every spawn on the pad centre (right for the solo
     /// Practice/Hotstint sessions); a non-zero spread lays them out in a staggered two-column grid
     /// so a full race field does not spawn inside itself. Headings are left alone — the pad is
-    /// featureless and 750 m deep in every direction, so any facing works.
+    /// featureless and 6 km deep in every direction, so any facing works.
     /// </remarks>
     public byte[] BuildSpawns(string rel, double spread)
     {

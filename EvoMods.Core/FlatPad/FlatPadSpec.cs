@@ -1,7 +1,7 @@
 namespace EvoMods.Core.FlatPad;
 
 /// <summary>
-/// The Flat Pad recipe: a 1.5 km dead-flat, wall-free, scenery-free pad derived from Sebring's
+/// The Flat Pad recipe: a 12 km dead-flat, wall-free, scenery-free pad derived from Sebring's
 /// stock files, registered as its own track so no base-game content is modified.
 /// </summary>
 /// <remarks>
@@ -82,7 +82,7 @@ public static class FlatPadSpec
     public const double PadY = 18.6;
 
     /// <summary>Target X and Z extent of the pad, in metres.</summary>
-    public const double PadSizeM = 1500.0;
+    public const double PadSizeM = 12000.0;
 
     /// <summary>Pit-cluster centre; spawns land here, on the pad.</summary>
     public const double SpawnX = -219.0;
@@ -115,7 +115,7 @@ public static class FlatPadSpec
     /// <summary>Its half-extent: big enough to hold the car reliably, small enough to avoid.</summary>
     public const double PitBoxRadiusM = 30.0;
 
-    /// <summary>XZ offset for the rest — well beyond the 1.5 km pad.</summary>
+    /// <summary>XZ offset for the rest — well beyond the 12 km pad.</summary>
     public const double PitZoneExileX = 100000.0;
 
     public const double PitZoneExileZ = 100000.0;

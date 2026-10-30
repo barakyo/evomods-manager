@@ -7,7 +7,7 @@ capture.
 | | |
 | --- | --- |
 | **Game content** | Unpack the game so mods load at all, revert it, or take any `.kspkg` apart. |
-| **Flat Pad** | A 1.5 km dead-flat, wall-free test track, derived on your machine from your own game files. |
+| **Flat Pad** | A 12 km dead-flat, wall-free test track, derived on your machine from your own game files. |
 | **Tracks** | Install a custom track from a `.zip` or folder — drop it on the page — and register it so it appears in the menus. |
 | **Filters** | Show the nine filters EVO ships hidden; install five built for video capture. |
 | **Camera** | Five chase-camera presets, the eight values behind them, and the settle time shown next to every value. |

@@ -22,7 +22,7 @@
                        CharacterSpacing="20" />
             <TextBlock Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap"
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                       Text="A 1.5 km dead-flat, wall-free, scenery-free test pad that spawns your car ready to drive. Built from your own game files — nothing is downloaded." />
+                       Text="A 12 km dead-flat, wall-free, scenery-free test pad that spawns your car ready to drive. Built from your own game files — nothing is downloaded." />
         </StackPanel>
 
         <InfoBar x:Name="Notice" Grid.Row="1" IsOpen="False" IsClosable="False" />
